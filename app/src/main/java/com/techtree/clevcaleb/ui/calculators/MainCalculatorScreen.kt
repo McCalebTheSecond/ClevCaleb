@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -30,12 +31,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.techtree.clevcaleb.logic.Formatters
 import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
+
+/** Keypad sizing tuned to match ClevCalc's large, thumb-friendly layout. */
+private object CalcSizing {
+    val keyHeight = 76.dp
+    val sciKeyHeight = 54.dp
+    val utilityRowHeight = 52.dp
+    val keyPadding = 4.dp
+    val keyCorner = 8.dp
+
+    val displayText = TextStyle(fontSize = 44.sp, fontWeight = FontWeight.Normal, lineHeight = 48.sp)
+    val previewText = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Normal)
+    val numberKeyText = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Medium)
+    val operatorKeyText = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium)
+    val equalsKeyText = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold)
+    val utilityText = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium)
+    val scientificText = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Medium)
+    val utilityIconSize = 32.dp
+}
 
 @Composable
 fun MainCalculatorScreen(
@@ -136,7 +158,7 @@ fun MainCalculatorScreen(
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
                     Text(
                         text = preview.ifEmpty { " " },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = CalcSizing.previewText,
                         color = HermesColors.MutedForeground,
                     )
                     BasicTextField(
@@ -145,7 +167,7 @@ fun MainCalculatorScreen(
                             expression = it
                             if (keepRecord) viewModel.setLastExpression(it)
                         },
-                        textStyle = MaterialTheme.typography.displaySmall.copy(
+                        textStyle = CalcSizing.displayText.copy(
                             color = HermesColors.Foreground,
                             textAlign = TextAlign.End,
                         ),
@@ -171,8 +193,12 @@ fun MainCalculatorScreen(
                             row.forEach { key ->
                                 CalcKey(
                                     label = key,
-                                    modifier = Modifier.fillMaxWidth().padding(2.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(CalcSizing.keyPadding)
+                                        .height(CalcSizing.sciKeyHeight),
                                     isOperator = true,
+                                    compact = true,
                                 ) {
                                     if (key == "DEG") {
                                         angleMode = if (angleMode == MathEngine.AngleMode.DEG) {
@@ -262,7 +288,7 @@ private fun ClevCalcKeypad(onKey: (String) -> Unit) {
         listOf("1", "2", "3", "+"),
         listOf("0", "00", ".", "="),
     )
-    Column(modifier = Modifier.padding(8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
         rows.forEach { row ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 row.forEach { key ->
@@ -270,7 +296,10 @@ private fun ClevCalcKeypad(onKey: (String) -> Unit) {
                     val isOperator = key in listOf("÷", "×", "−", "+", "=") || key == "C" || key == "()" || key == "%"
                     CalcKey(
                         label = key,
-                        modifier = Modifier.weight(1f).padding(3.dp).height(64.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(CalcSizing.keyPadding)
+                            .height(CalcSizing.keyHeight),
                         isOperator = isOperator,
                         isEquals = isEquals,
                         onClick = { onKey(key) },
@@ -287,6 +316,7 @@ private fun CalcKey(
     modifier: Modifier = Modifier,
     isOperator: Boolean = false,
     isEquals: Boolean = false,
+    compact: Boolean = false,
     onClick: () -> Unit,
 ) {
     val bg = when {
@@ -294,22 +324,23 @@ private fun CalcKey(
         isOperator -> HermesColors.Secondary
         else -> HermesColors.Card
     }
-    val fg = when {
-        isEquals -> HermesColors.Foreground
-        isOperator -> HermesColors.Foreground
-        else -> HermesColors.Foreground
+    val textStyle = when {
+        isEquals -> CalcSizing.equalsKeyText
+        compact -> CalcSizing.scientificText
+        isOperator -> CalcSizing.operatorKeyText
+        else -> CalcSizing.numberKeyText
     }
     Box(
         modifier = modifier
-            .background(bg, RoundedCornerShape(6.dp))
-            .border(1.dp, HermesColors.Border, RoundedCornerShape(6.dp))
+            .background(bg, RoundedCornerShape(CalcSizing.keyCorner))
+            .border(1.dp, HermesColors.Border, RoundedCornerShape(CalcSizing.keyCorner))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            style = if (isEquals) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-            color = fg,
+            style = textStyle,
+            color = HermesColors.Foreground,
         )
     }
 }
@@ -319,14 +350,19 @@ private fun CalcUtilityKey(label: String, modifier: Modifier = Modifier, onClick
     Box(
         modifier = modifier
             .padding(horizontal = 4.dp)
-            .height(44.dp)
+            .height(CalcSizing.utilityRowHeight)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (label == "…") {
-            Icon(Icons.Filled.MoreHoriz, contentDescription = "Scientific", tint = HermesColors.Foreground)
+            Icon(
+                Icons.Filled.MoreHoriz,
+                contentDescription = "Scientific",
+                tint = HermesColors.Foreground,
+                modifier = Modifier.size(CalcSizing.utilityIconSize),
+            )
         } else {
-            Text(label, color = HermesColors.Foreground, style = MaterialTheme.typography.titleMedium)
+            Text(label, color = HermesColors.Foreground, style = CalcSizing.utilityText)
         }
     }
 }

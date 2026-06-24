@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,7 +23,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.techtree.clevcaleb.theme.HermesColors
+
+private val ToolbarIconSize = 28.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,22 +43,34 @@ fun ClevCalcScaffold(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(title, style = androidx.compose.material3.MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        Icon(
+                            Icons.Filled.Menu,
+                            contentDescription = "Menu",
+                            modifier = Modifier.size(ToolbarIconSize),
+                        )
                     }
                 },
                 actions = {
                     if (onHistory != null) {
                         IconButton(onClick = onHistory) {
-                            Icon(Icons.Filled.History, contentDescription = "History")
+                            Icon(
+                                Icons.Filled.History,
+                                contentDescription = "History",
+                                modifier = Modifier.size(ToolbarIconSize),
+                            )
                         }
                     }
                     if (onSettings != null || onDecimalPlaces != null) {
                         Box {
                             IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                                Icon(
+                                    Icons.Filled.MoreVert,
+                                    contentDescription = "More",
+                                    modifier = Modifier.size(ToolbarIconSize),
+                                )
                             }
                             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                                 onDecimalPlaces?.let {
