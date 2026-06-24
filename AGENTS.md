@@ -2,23 +2,42 @@
 
 ## Cursor Cloud specific instructions
 
-### Current repository state (read this first)
+### Project overview
 
-As of this writing, the repository contains **only `README.md`** — there is **no application code, no build system, and no dependency manifests** (no `build.gradle`/`gradlew`, `package.json`, `pyproject.toml`, etc.).
+**ClevCaleb** is a native **Android calculator app** (an ad-free clone of *ClevCalc*) using a custom
+"Hermes Nous Blue Dark" theme. It is a standard **Gradle + Kotlin** Android project:
 
-Per `README.md`, the *intended* product is **ClevCaleb**: an ad-free clone of the Android app **ClevCalc** (a multi-function calculator), themed "Hermes Nous Blue Dark". This has not been scaffolded yet.
+- `app/` — the Android application module
+  - `Calculator.kt` — pure, Android-free arithmetic logic (unit-testable on the JVM)
+  - `MainActivity.kt` — the calculator UI wiring (View Binding)
+  - `src/test/.../CalculatorTest.kt` — JVM unit tests for the arithmetic logic
+- Build config: Android Gradle Plugin 8.5.2, Kotlin 1.9.24, Gradle 8.7, `compileSdk`/`targetSdk` 34, `minSdk` 24.
 
-Implications for cloud agents:
+### Toolchain (pre-installed in the VM snapshot)
 
-- There is **nothing to install, lint, build, or run** until a project is scaffolded. Do not expect dependency installation, dev servers, or tests to exist.
-- Do **not** invent or scaffold an entire app unless explicitly asked — that is product work, not environment setup.
+- **JDK 21** at `/usr/lib/jvm/java-21-openjdk-amd64` (`JAVA_HOME`).
+- **Android SDK** at `~/android-sdk` (`ANDROID_HOME`/`ANDROID_SDK_ROOT`): `platform-tools`, `platforms;android-34`, `build-tools;34.0.0`.
+- These env vars are exported in `~/.bashrc`, so **interactive** shells have them automatically.
 
-### Pre-installed VM tooling (for reference)
+Non-obvious gotchas:
+- The Gradle build locates the SDK via `local.properties` (`sdk.dir=$HOME/android-sdk`). This file is
+  git-ignored (machine-specific); the startup update script recreates it if missing. If a build fails with
+  "SDK location not found", recreate it: `echo "sdk.dir=$HOME/android-sdk" > local.properties`.
+- The update script runs in a **non-interactive** shell that does not source `~/.bashrc`, so when running
+  Gradle from such a context, pass `JAVA_HOME` explicitly (e.g. `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew ...`).
+  Interactive shells already have `JAVA_HOME` set.
 
-The base VM already provides: **Node 22**, **Java/OpenJDK 21**, **Python 3.12**. Not present: **Gradle**, **Android SDK** (`ANDROID_HOME` unset), **Flutter**.
+### Build / test / lint / run
 
-If the project is scaffolded as a native **Android** app, note that Android SDK + Gradle are *system-level* dependencies that are not pre-installed, and a running Android emulator is generally not available in this headless cloud VM. Plan testing accordingly (e.g. unit tests via Gradle, or Robolectric, rather than an on-device/emulator GUI run).
+Run from the repo root (interactive shell has `JAVA_HOME`/`ANDROID_HOME` set):
 
-### When app code is added
+- Unit tests: `./gradlew test`
+- Build debug APK: `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
+- Lint: `./gradlew lintDebug` (HTML report under `app/build/reports/`)
 
-Once a build system exists, update the cloud update script (via the environment setup flow) to install dependencies for the chosen stack, and add the standard lint/test/build/run commands here, referencing the project's own scripts rather than duplicating them.
+### Running the app (important limitation)
+
+This is a **GUI Android app**, and the cloud VM has **no `/dev/kvm`**, so a hardware-accelerated emulator
+cannot run here. There is no automated GUI run in this environment. To validate behavior headlessly, rely on
+the **JVM unit tests** (which exercise the calculator logic) plus `assembleDebug`. To see the UI, install the
+APK on a real device/emulator outside this VM (`adb install app/build/outputs/apk/debug/app-debug.apk`).

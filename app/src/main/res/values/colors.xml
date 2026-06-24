@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hermes Nous Blue Dark inspired palette -->
+    <color name="bg_darker">#0A0F1E</color>
+    <color name="bg_dark">#0E1525</color>
+    <color name="surface">#16203A</color>
+    <color name="surface_variant">#1E2B4D</color>
+    <color name="blue_700">#1E3A8A</color>
+    <color name="blue_500">#3B82F6</color>
+    <color name="blue_300">#93C5FD</color>
+    <color name="accent">#38BDF8</color>
+    <color name="text_primary">#E6ECFF</color>
+    <color name="text_secondary">#9FB0D0</color>
+</resources>
