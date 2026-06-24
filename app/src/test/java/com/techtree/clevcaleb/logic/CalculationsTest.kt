@@ -38,4 +38,12 @@ class CalculationsTest {
         val rates = mapOf("USD" to 1.0, "EUR" to 0.5)
         assertEquals(50.0, CurrencyRepository.convert(100.0, "USD", "EUR", rates), 0.01)
     }
+
+    @Test
+    fun calculatorFormattingStripsTrailingZeros() {
+        assertEquals("3", Formatters.calculator(3.0))
+        assertEquals("3", Formatters.calculator(1.0 + 2.0))
+        assertEquals("0.5", Formatters.calculator(0.5))
+        assertEquals("3.14", Formatters.calculator(3.14))
+    }
 }

@@ -52,7 +52,7 @@ fun MainCalculatorScreen(
     var scientificOpen by remember { mutableStateOf(false) }
     var angleMode by remember { mutableStateOf(MathEngine.AngleMode.DEG) }
     var showHistory by remember { mutableStateOf(false) }
-    var decimalPlaces by remember { mutableStateOf(6) }
+    var decimalPlaces by remember { mutableStateOf(10) }
     var showDecimalDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(savedExpr, keepRecord) {
@@ -61,8 +61,8 @@ fun MainCalculatorScreen(
         }
     }
 
-    val preview = remember(expression, angleMode) {
-        MathEngine.evaluate(expression, angleMode)?.let { Formatters.number(it, decimalPlaces) } ?: ""
+    val preview = remember(expression, angleMode, decimalPlaces) {
+        MathEngine.evaluate(expression, angleMode)?.let { Formatters.calculator(it, decimalPlaces) } ?: ""
     }
 
     val view = LocalView.current
@@ -92,7 +92,7 @@ fun MainCalculatorScreen(
             "=" -> {
                 val result = MathEngine.evaluate(expression, angleMode)
                 if (result != null) {
-                    val formatted = Formatters.number(result, decimalPlaces)
+                    val formatted = Formatters.calculator(result, decimalPlaces)
                     val entry = "$expression = $formatted"
                     viewModel.addHistory(entry)
                     expression = formatted
@@ -291,12 +291,12 @@ private fun CalcKey(
 ) {
     val bg = when {
         isEquals -> HermesColors.NousBlue
-        isOperator -> HermesColors.Muted
+        isOperator -> HermesColors.Secondary
         else -> HermesColors.Card
     }
     val fg = when {
         isEquals -> HermesColors.Foreground
-        isOperator -> HermesColors.NousBlue
+        isOperator -> HermesColors.Foreground
         else -> HermesColors.Foreground
     }
     Box(
@@ -324,9 +324,9 @@ private fun CalcUtilityKey(label: String, modifier: Modifier = Modifier, onClick
         contentAlignment = Alignment.Center,
     ) {
         if (label == "…") {
-            Icon(Icons.Filled.MoreHoriz, contentDescription = "Scientific", tint = HermesColors.NousBlue)
+            Icon(Icons.Filled.MoreHoriz, contentDescription = "Scientific", tint = HermesColors.Foreground)
         } else {
-            Text(label, color = HermesColors.NousBlue, style = MaterialTheme.typography.titleMedium)
+            Text(label, color = HermesColors.Foreground, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
