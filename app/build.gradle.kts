@@ -21,8 +21,23 @@ android {
         resourceConfigurations += listOf("en")
     }
 
+    signingConfigs {
+        create("release") {
+            val keystore = rootProject.file("keystore/clevcaleb-release.jks")
+            if (keystore.exists()) {
+                storeFile = keystore
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "clevcaleb"
+                keyAlias = "clevcaleb"
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "clevcaleb"
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (rootProject.file("keystore/clevcaleb-release.jks").exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

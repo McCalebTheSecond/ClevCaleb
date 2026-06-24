@@ -11,6 +11,9 @@ build/
 # Local configuration
 local.properties
 
+# Release signing (never commit)
+keystore/
+
 # Android Studio
 .idea/
 *.iml
