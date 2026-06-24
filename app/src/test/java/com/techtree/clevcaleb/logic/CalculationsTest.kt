@@ -34,6 +34,76 @@ class CalculationsTest {
     }
 
     @Test
+    fun mathEnginePercentOfMultiplication() {
+        val result = MathEngine.evaluate("100×5%")
+        assertNotNull(result)
+        assertEquals(5.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePercentWithMultiplyOperator() {
+        val result = MathEngine.evaluate("100*5%")
+        assertNotNull(result)
+        assertEquals(5.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePercentAddition() {
+        val result = MathEngine.evaluate("200+10%")
+        assertNotNull(result)
+        assertEquals(220.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePercentSubtraction() {
+        val result = MathEngine.evaluate("200-10%")
+        assertNotNull(result)
+        assertEquals(180.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineStandalonePercent() {
+        val result = MathEngine.evaluate("50%")
+        assertNotNull(result)
+        assertEquals(0.5, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePercentDivision() {
+        val result = MathEngine.evaluate("100÷5%")
+        assertNotNull(result)
+        assertEquals(2000.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePercentChainedMultiplication() {
+        val result = MathEngine.evaluate("100×5%×2")
+        assertNotNull(result)
+        assertEquals(10.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineLegacyPercentSyntax() {
+        // Old builds appended "/100*" instead of "%"
+        val result = MathEngine.evaluate("100×5/100*")
+        assertNotNull(result)
+        assertEquals(5.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePreprocessPercentages() {
+        assertEquals("100*5/100", MathEngine.preprocessPercentages("100*5%"))
+        assertEquals("200+200*10/100", MathEngine.preprocessPercentages("200+10%"))
+        assertEquals("50/100", MathEngine.preprocessPercentages("50%"))
+    }
+
+    @Test
+    fun mathEngineStripTrailingOperators() {
+        assertEquals("100*5/100", MathEngine.stripTrailingOperators("100*5/100*"))
+        assertEquals("100*5%", MathEngine.stripTrailingOperators("100*5%"))
+    }
+
+    @Test
     fun currencyConvert() {
         val rates = mapOf("USD" to 1.0, "EUR" to 0.5)
         assertEquals(50.0, CurrencyRepository.convert(100.0, "USD", "EUR", rates), 0.01)

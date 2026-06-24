@@ -142,7 +142,7 @@ fun MainCalculatorScreen(
             "×" -> append("×")
             "−" -> append("−")
             "+" -> append("+")
-            "%" -> append("/100*")
+            "%" -> append("%")
             "^" -> append("^")
             "00" -> append("00")
             "√" -> append("sqrt(")
