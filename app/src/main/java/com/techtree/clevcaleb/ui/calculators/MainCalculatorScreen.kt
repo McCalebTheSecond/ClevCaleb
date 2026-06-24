@@ -1,9 +1,13 @@
 package com.techtree.clevcaleb.ui.calculators
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +24,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +48,7 @@ import com.techtree.clevcaleb.logic.Formatters
 import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Keypad sizing tuned to match ClevCalc's large, thumb-friendly layout. */
 private object CalcSizing {
@@ -105,6 +112,13 @@ fun MainCalculatorScreen(
         if (keepRecord) viewModel.setLastExpression(expression)
     }
 
+    fun backspace() {
+        if (expression.isNotEmpty()) {
+            expression = expression.dropLast(1)
+            if (keepRecord) viewModel.setLastExpression(expression)
+        }
+    }
+
     fun handleKey(key: String) {
         haptic()
         when (key) {
@@ -112,12 +126,7 @@ fun MainCalculatorScreen(
                 expression = ""
                 if (keepRecord) viewModel.setLastExpression("", immediate = true)
             }
-            "⌫" -> {
-                if (expression.isNotEmpty()) {
-                    expression = expression.dropLast(1)
-                    if (keepRecord) viewModel.setLastExpression(expression)
-                }
-            }
+            "⌫" -> backspace()
             "=" -> {
                 val result = MathEngine.evaluate(expression, angleMode)
                 if (result != null) {
@@ -191,7 +200,13 @@ fun MainCalculatorScreen(
                     scientificOpen = !scientificOpen
                 }
                 CalcUtilityKey("^", modifier = Modifier.weight(1f)) { handleKey("^") }
-                CalcUtilityKey("⌫", modifier = Modifier.weight(1f)) { handleKey("⌫") }
+                CalcUtilityKey(
+                    label = "⌫",
+                    modifier = Modifier.weight(1f),
+                    repeatOnHold = true,
+                    onHaptic = ::haptic,
+                    onClick = ::backspace,
+                )
             }
 
             if (scientificOpen) {
@@ -340,22 +355,26 @@ private fun CalcKey(
         isOperator -> CalcSizing.operatorKeyText
         else -> CalcSizing.numberKeyText
     }
-    Box(
-        modifier = modifier
-            .background(bg, RoundedCornerShape(CalcSizing.keyCorner))
-            .border(1.dp, HermesColors.Border, RoundedCornerShape(CalcSizing.keyCorner))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
+    val shape = RoundedCornerShape(CalcSizing.keyCorner)
+    val interactionSource = remember { MutableInteractionSource() }
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = shape,
+        color = bg,
+        border = BorderStroke(1.dp, HermesColors.Border),
+        interactionSource = interactionSource,
     ) {
-        Text(
-            text = label,
-            style = textStyle,
-            color = HermesColors.Foreground,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                style = textStyle,
+                color = HermesColors.Foreground,
+            )
+        }
     }
 }
 
@@ -363,21 +382,33 @@ private fun CalcKey(
 private fun CalcUtilityKey(
     label: String,
     modifier: Modifier = Modifier,
+    repeatOnHold: Boolean = false,
     onHaptic: () -> Unit = {},
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val keyModifier = modifier
+        .padding(horizontal = 4.dp)
+        .height(CalcSizing.utilityRowHeight)
+        .then(
+            if (repeatOnHold) {
+                Modifier.repeatOnHold(
+                    onHaptic = onHaptic,
+                    onRepeat = onClick,
+                )
+            } else {
+                Modifier.clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {
+                        onHaptic()
+                        onClick()
+                    },
+                )
+            },
+        )
     Box(
-        modifier = modifier
-            .padding(horizontal = 4.dp)
-            .height(CalcSizing.utilityRowHeight)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = {
-                    onHaptic()
-                    onClick()
-                },
-            ),
+        modifier = keyModifier,
         contentAlignment = Alignment.Center,
     ) {
         if (label == "…") {
@@ -389,6 +420,29 @@ private fun CalcUtilityKey(
             )
         } else {
             Text(label, color = HermesColors.Foreground, style = CalcSizing.utilityText)
+        }
+    }
+}
+
+private fun Modifier.repeatOnHold(
+    initialDelayMillis: Long = 400,
+    repeatIntervalMillis: Long = 75,
+    onHaptic: () -> Unit = {},
+    onRepeat: () -> Unit,
+): Modifier = pointerInput(onRepeat) {
+    awaitEachGesture {
+        awaitFirstDown()
+        onHaptic()
+        onRepeat()
+        var isFirst = true
+        while (true) {
+            val delay = if (isFirst) initialDelayMillis else repeatIntervalMillis
+            val released = withTimeoutOrNull(delay) {
+                waitForUpOrCancellation()
+            }
+            if (released != null) break
+            onRepeat()
+            isFirst = false
         }
     }
 }
