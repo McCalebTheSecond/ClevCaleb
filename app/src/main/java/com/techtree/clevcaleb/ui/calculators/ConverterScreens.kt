@@ -27,14 +27,21 @@ import kotlinx.coroutines.delay
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnitConverterScreen(onBack: () -> Unit) {
     var category by remember { mutableStateOf(UnitCategory.LENGTH) }
     val units = UnitConverterLogic.categories[category] ?: emptyList()
-    var fromId by remember(category) { mutableStateOf(units.firstOrNull()?.id ?: "") }
-    var toId by remember(category) { mutableStateOf(units.getOrNull(1)?.id ?: units.firstOrNull()?.id ?: "") }
+    var fromId by remember(category) {
+        val (from, _) = UnitConverterLogic.defaultUsUnits(category)
+        mutableStateOf(from)
+    }
+    var toId by remember(category) {
+        val (_, to) = UnitConverterLogic.defaultUsUnits(category)
+        mutableStateOf(to)
+    }
     var value by remember { mutableStateOf("1") }
 
     val result = value.toDoubleOrNull()?.let { v ->
@@ -44,9 +51,9 @@ fun UnitConverterScreen(onBack: () -> Unit) {
     CalculatorScaffold(title = "Unit Converter", onBack = onBack) {
         DropdownField("Category", UnitCategory.entries.map { it to it.label }, category) {
             category = it
-            val u = UnitConverterLogic.categories[it] ?: emptyList()
-            fromId = u.firstOrNull()?.id ?: ""
-            toId = u.getOrNull(1)?.id ?: fromId
+            val (from, to) = UnitConverterLogic.defaultUsUnits(it)
+            fromId = from
+            toId = to
         }
         NumberField("Value", value) { value = it }
         DropdownField("From", units.map { it.id to it.label }, fromId) { fromId = it }
@@ -59,7 +66,7 @@ fun UnitConverterScreen(onBack: () -> Unit) {
 fun CurrencyConverterScreen(onBack: () -> Unit) {
     var amount by remember { mutableStateOf("100") }
     var from by remember { mutableStateOf("USD") }
-    var to by remember { mutableStateOf("EUR") }
+    var to by remember { mutableStateOf("CAD") }
     var rates by remember { mutableStateOf<Map<String, Double>?>(null) }
 
     LaunchedEffect(Unit) {
@@ -85,8 +92,8 @@ fun CurrencyConverterScreen(onBack: () -> Unit) {
 
 @Composable
 fun WorldTimeScreen(onBack: () -> Unit) {
-    var fromTz by remember { mutableStateOf("America/New_York") }
-    var toTz by remember { mutableStateOf("Europe/London") }
+    var fromTz by remember { mutableStateOf("America/Chicago") }
+    var toTz by remember { mutableStateOf("America/New_York") }
     var now by remember { mutableStateOf(ZonedDateTime.now()) }
 
     LaunchedEffect(Unit) {
@@ -97,20 +104,20 @@ fun WorldTimeScreen(onBack: () -> Unit) {
     }
 
     val formatter = remember {
-        DateTimeFormatter.ofPattern("EEE, MMM d, h:mm a z")
+        DateTimeFormatter.ofPattern("EEE, MMM d, h:mm a z", Locale.US)
     }
 
-    CalculatorScaffold(title = "World Time", onBack = onBack) {
+    CalculatorScaffold(title = "US Time", onBack = onBack) {
         DropdownField(
             "From city",
-            WorldTimeData.cities.map { it.timezone to "${it.city}, ${it.country}" },
+            WorldTimeData.cities.map { it.timezone to it.label },
             fromTz,
         ) { fromTz = it }
         ResultCard("Time", now.withZoneSameInstant(ZoneId.of(fromTz)).format(formatter))
 
         DropdownField(
             "To city",
-            WorldTimeData.cities.map { it.timezone to "${it.city}, ${it.country}" },
+            WorldTimeData.cities.map { it.timezone to it.label },
             toTz,
         ) { toTz = it }
         ResultCard("Time", now.withZoneSameInstant(ZoneId.of(toTz)).format(formatter))

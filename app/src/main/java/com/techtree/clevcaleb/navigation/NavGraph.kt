@@ -33,7 +33,6 @@ import com.techtree.clevcaleb.ui.calculators.UnitPriceScreen
 import com.techtree.clevcaleb.ui.calculators.WorldTimeScreen
 import com.techtree.clevcaleb.ui.settings.CalculatorListScreen
 import com.techtree.clevcaleb.ui.settings.HelpScreen
-import com.techtree.clevcaleb.ui.settings.NumberFormatScreen
 import com.techtree.clevcaleb.ui.settings.SettingsScreen
 import com.techtree.clevcaleb.ui.settings.StartupCalculatorScreen
 
@@ -107,7 +106,6 @@ fun ClevCalebApp(viewModel: AppViewModel) {
                     onBack = { navController.popBackStack() },
                     onCalculatorList = { navController.navigate("calculator_list") },
                     onStartupCalculator = { navController.navigate("startup_calculator") },
-                    onNumberFormat = { navController.navigate("number_format") },
                 )
             }
             composable("calculator_list") {
@@ -115,9 +113,6 @@ fun ClevCalebApp(viewModel: AppViewModel) {
             }
             composable("startup_calculator") {
                 StartupCalculatorScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
-            }
-            composable("number_format") {
-                NumberFormatScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
             }
             composable("help") {
                 HelpScreen(onBack = { navController.popBackStack() })

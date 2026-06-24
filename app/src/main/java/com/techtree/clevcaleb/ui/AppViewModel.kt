@@ -21,7 +21,6 @@ class AppViewModel(private val prefs: AppPreferences) : ViewModel() {
     val keepScreenOn = prefs.keepScreenOn.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val keepCalcRecord = prefs.keepCalcRecord.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val openListAtStartup = prefs.openListAtStartup.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-    val numberFormat = prefs.numberFormat.stateIn(viewModelScope, SharingStarted.Eagerly, "default")
     val lastExpression = prefs.lastExpression.stateIn(viewModelScope, SharingStarted.Eagerly, "")
     val history = prefs.history.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -32,7 +31,6 @@ class AppViewModel(private val prefs: AppPreferences) : ViewModel() {
     fun setKeepScreenOn(enabled: Boolean) = viewModelScope.launch { prefs.setKeepScreenOn(enabled) }
     fun setKeepCalcRecord(enabled: Boolean) = viewModelScope.launch { prefs.setKeepCalcRecord(enabled) }
     fun setOpenListAtStartup(enabled: Boolean) = viewModelScope.launch { prefs.setOpenListAtStartup(enabled) }
-    fun setNumberFormat(format: String) = viewModelScope.launch { prefs.setNumberFormat(format) }
     fun setLastExpression(expr: String) = viewModelScope.launch { prefs.setLastExpression(expr) }
     fun setHistory(items: List<String>) = viewModelScope.launch { prefs.setHistory(items) }
     fun addHistory(entry: String) = viewModelScope.launch {

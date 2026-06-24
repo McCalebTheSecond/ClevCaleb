@@ -18,6 +18,7 @@ import com.techtree.clevcaleb.ui.components.ResultCard
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 @Composable
 fun DateScreen(onBack: () -> Unit) {
@@ -25,7 +26,7 @@ fun DateScreen(onBack: () -> Unit) {
     var date1 by remember { mutableStateOf(LocalDate.now().toString()) }
     var date2 by remember { mutableStateOf(LocalDate.now().toString()) }
     var days by remember { mutableStateOf("30") }
-    val fmt = remember { DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy") }
+    val fmt = remember { DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy", Locale.US) }
 
     val results = remember(mode, date1, date2, days) {
         runCatching {
@@ -69,19 +70,18 @@ fun DateScreen(onBack: () -> Unit) {
 
 @Composable
 fun HealthScreen(onBack: () -> Unit) {
-    var imperial by remember { mutableStateOf(true) }
     var male by remember { mutableStateOf(true) }
     var age by remember { mutableStateOf("30") }
     var weight by remember { mutableStateOf("170") }
     var height by remember { mutableStateOf("70") }
 
-    val results = remember(imperial, male, age, weight, height) {
+    val results = remember(male, age, weight, height) {
         val w = weight.toDoubleOrNull() ?: return@remember null
         val h = height.toDoubleOrNull() ?: return@remember null
         val a = age.toDoubleOrNull() ?: return@remember null
         if (h <= 0) return@remember null
-        val weightKg = if (imperial) w * 0.453592 else w
-        val heightCm = if (imperial) h * 2.54 else h
+        val weightKg = w * 0.453592
+        val heightCm = h * 2.54
         val bmi = HealthCalculations.bmi(weightKg, heightCm)
         Triple(
             Formatters.number(bmi, 1),
@@ -90,12 +90,11 @@ fun HealthScreen(onBack: () -> Unit) {
         )
     }
 
-    CalculatorScaffold(title = "Health", onBack = onBack) {
-        DropdownField("Units", listOf(true to "Imperial (lb, in)", false to "Metric (kg, cm)"), imperial) { imperial = it }
+    CalculatorScaffold(title = "Body Metrics", onBack = onBack) {
         DropdownField("Sex", listOf(true to "Male", false to "Female"), male) { male = it }
         NumberField("Age (years)", age) { age = it }
-        NumberField(if (imperial) "Weight (lb)" else "Weight (kg)", weight) { weight = it }
-        NumberField(if (imperial) "Height (in)" else "Height (cm)", height) { height = it }
+        NumberField("Weight (lb)", weight) { weight = it }
+        NumberField("Height (in)", height) { height = it }
         results?.let { (bmi, category, bmr) ->
             ResultCard("BMI", bmi)
             ResultCard("BMI category", category)
@@ -107,33 +106,23 @@ fun HealthScreen(onBack: () -> Unit) {
 @Composable
 fun FuelCostScreen(onBack: () -> Unit) {
     var distance by remember { mutableStateOf("100") }
-    var miles by remember { mutableStateOf(true) }
     var efficiency by remember { mutableStateOf("28") }
-    var mpg by remember { mutableStateOf(true) }
     var price by remember { mutableStateOf("3.50") }
 
-    val result = remember(distance, miles, efficiency, mpg, price) {
+    val result = remember(distance, efficiency, price) {
         val d = distance.toDoubleOrNull() ?: return@remember null
         val eff = efficiency.toDoubleOrNull() ?: return@remember null
         val p = price.toDoubleOrNull() ?: return@remember null
         if (eff <= 0) return@remember null
-        val gallons = if (miles) {
-            if (mpg) d / eff else (d / 100) * (eff * 0.425144)
-        } else {
-            val liters = if (mpg) d / (eff * 0.425144) else (d / 100) * eff
-            liters / 3.78541
-        }
-        val liters = gallons * 3.78541
-        val cost = if (mpg && miles) gallons * p else liters * p
-        Formatters.currency(cost) to "${Formatters.number(liters)} L (${Formatters.number(gallons)} gal)"
+        val gallons = d / eff
+        val cost = gallons * p
+        Formatters.currency(cost) to "${Formatters.number(gallons)} gal"
     }
 
     CalculatorScaffold(title = "Fuel Cost", onBack = onBack) {
-        NumberField("Distance", distance) { distance = it }
-        DropdownField("Distance unit", listOf(true to "Miles", false to "Kilometers"), miles) { miles = it }
-        NumberField("Fuel efficiency", efficiency) { efficiency = it }
-        DropdownField("Efficiency unit", listOf(true to "MPG", false to "L/100km"), mpg) { mpg = it }
-        NumberField("Fuel price", price) { price = it }
+        NumberField("Distance (miles)", distance) { distance = it }
+        NumberField("Fuel efficiency (MPG)", efficiency) { efficiency = it }
+        NumberField("Fuel price (per gallon)", price) { price = it }
         result?.let { (cost, fuel) ->
             ResultCard("Estimated fuel cost", cost)
             ResultCard("Fuel needed", fuel)
@@ -144,31 +133,24 @@ fun FuelCostScreen(onBack: () -> Unit) {
 @Composable
 fun FuelEfficiencyScreen(onBack: () -> Unit) {
     var distance by remember { mutableStateOf("300") }
-    var miles by remember { mutableStateOf(true) }
     var fuel by remember { mutableStateOf("10") }
-    var gallons by remember { mutableStateOf(true) }
 
-    val result = remember(distance, miles, fuel, gallons) {
+    val result = remember(distance, fuel) {
         val d = distance.toDoubleOrNull() ?: return@remember null
         val f = fuel.toDoubleOrNull() ?: return@remember null
         if (f <= 0) return@remember null
-        val distMi = if (miles) d else d / 1.60934
-        val fuelGal = if (gallons) f else f / 3.78541
-        val mpg = distMi / fuelGal
-        val l100 = (fuelGal * 3.78541) / (distMi * 1.60934) * 100
-        val kmpl = (distMi * 1.60934) / (fuelGal * 3.78541)
+        val mpg = d / f
+        val l100 = 235.215 / mpg
         Triple(
             "${Formatters.number(mpg)} MPG",
             "${Formatters.number(l100)} L/100km",
-            "${Formatters.number(kmpl)} km/L",
+            "${Formatters.number(mpg * 0.425144)} km/L",
         )
     }
 
     CalculatorScaffold(title = "Fuel Efficiency", onBack = onBack) {
-        NumberField("Distance traveled", distance) { distance = it }
-        DropdownField("Distance unit", listOf(true to "Miles", false to "Kilometers"), miles) { miles = it }
-        NumberField("Fuel used", fuel) { fuel = it }
-        DropdownField("Fuel unit", listOf(true to "Gallons", false to "Liters"), gallons) { gallons = it }
+        NumberField("Distance traveled (miles)", distance) { distance = it }
+        NumberField("Fuel used (gallons)", fuel) { fuel = it }
         result?.let { (mpg, l100, kmpl) ->
             ResultCard("Miles per gallon", mpg)
             ResultCard("Liters per 100 km", l100)
@@ -222,7 +204,7 @@ fun GpaScreen(onBack: () -> Unit) {
 fun OvulationScreen(onBack: () -> Unit) {
     var lastPeriod by remember { mutableStateOf(LocalDate.now().toString()) }
     var cycle by remember { mutableStateOf("28") }
-    val fmt = remember { DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy") }
+    val fmt = remember { DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy", Locale.US) }
 
     val results = remember(lastPeriod, cycle) {
         runCatching {
@@ -280,7 +262,7 @@ fun HexScreen(onBack: () -> Unit) {
             colors = fieldColors(),
             singleLine = true,
         )
-        hex.toLongOrNull(16)?.let { ResultCard("Decimal", "%,d".format(it)) }
+        hex.toLongOrNull(16)?.let { ResultCard("Decimal", Formatters.integer(it)) }
     }
 }
 

@@ -38,14 +38,12 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onCalculatorList: () -> Unit,
     onStartupCalculator: () -> Unit,
-    onNumberFormat: () -> Unit,
 ) {
     val startup by viewModel.startupCalculator.collectAsState()
     val vibration by viewModel.buttonVibration.collectAsState()
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val keepRecord by viewModel.keepCalcRecord.collectAsState()
     val openList by viewModel.openListAtStartup.collectAsState()
-    val numberFormat by viewModel.numberFormat.collectAsState()
 
     Scaffold(
         topBar = {
@@ -75,7 +73,7 @@ fun SettingsScreen(
             SettingsNavItem("Calculator list", "Edit the list of favorite calculators", onCalculatorList)
             SettingsNavItem("Startup calculator", startup.title, onStartupCalculator)
             SettingsNavItem("Theme", "Hermes Nous Blue Dark", onClick = {})
-            SettingsNavItem("Number format", formatLabel(numberFormat), onNumberFormat)
+            SettingsNavItem("Number format", "US English (1,234.56)", onClick = {})
 
             SectionHeader("Details")
             SettingsToggle("Button feedback", "Vibration", vibration) { viewModel.setButtonVibration(it) }
@@ -183,47 +181,6 @@ fun StartupCalculatorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NumberFormatScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val current by viewModel.numberFormat.collectAsState()
-    val options = listOf("default" to "Use default", "comma" to "1,234.56", "space" to "1 234.56")
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Number format") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = HermesColors.Sidebar,
-                    titleContentColor = HermesColors.Foreground,
-                    navigationIconContentColor = HermesColors.Foreground,
-                ),
-            )
-        },
-        containerColor = HermesColors.Background,
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            options.forEach { (id, label) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.setNumberFormat(id); onBack() }
-                        .padding(16.dp),
-                ) {
-                    Text(
-                        text = label,
-                        color = if (id == current) HermesColors.Primary else HermesColors.Foreground,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun HelpScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
@@ -246,7 +203,7 @@ fun HelpScreen(onBack: () -> Unit) {
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
             Text("ClevCaleb Help", style = MaterialTheme.typography.titleMedium, color = HermesColors.Foreground)
             Text(
-                "Tap the menu icon to open all calculators. Use the history icon on the main calculator to review past calculations. Configure favorites and startup calculator in Settings.",
+                "Tap the menu icon to open all calculators. Use the history icon on the main calculator to review past calculations. Configure favorites and startup calculator in Settings. This US English build uses imperial defaults and US time zones.",
                 color = HermesColors.MutedForeground,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -298,10 +255,4 @@ private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, on
             colors = CheckboxDefaults.colors(checkedColor = HermesColors.NousBlue),
         )
     }
-}
-
-private fun formatLabel(id: String) = when (id) {
-    "comma" -> "1,234.56"
-    "space" -> "1 234.56"
-    else -> "Use default"
 }

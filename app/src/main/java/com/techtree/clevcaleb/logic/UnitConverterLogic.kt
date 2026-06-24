@@ -110,4 +110,18 @@ object UnitConverterLogic {
         val to = unitList.find { it.id == toId } ?: return null
         return to.fromBase(from.toBase(value))
     }
+
+    /** Default from/to unit IDs for US users (imperial-first where applicable). */
+    fun defaultUsUnits(category: UnitCategory): Pair<String, String> = when (category) {
+        UnitCategory.LENGTH -> "mi" to "km"
+        UnitCategory.WEIGHT -> "lb" to "kg"
+        UnitCategory.AREA -> "sqft" to "sqm"
+        UnitCategory.VOLUME -> "gal" to "l"
+        UnitCategory.TIME -> "hr" to "min"
+        UnitCategory.TEMPERATURE -> "f" to "c"
+        UnitCategory.PRESSURE -> "psi" to "kpa"
+        UnitCategory.SPEED -> "mph" to "kph"
+        UnitCategory.FUEL -> "mpg" to "l100"
+        UnitCategory.DATA -> "gb" to "mb"
+    }
 }

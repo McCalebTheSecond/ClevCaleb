@@ -65,10 +65,3 @@ object HealthCalculations {
         else -> "Obese"
     }
 }
-
-object Formatters {
-    fun number(value: Double, decimals: Int = 2): String =
-        "%,.${decimals}f".format(value)
-
-    fun currency(value: Double): String = "$${number(value)}"
-}

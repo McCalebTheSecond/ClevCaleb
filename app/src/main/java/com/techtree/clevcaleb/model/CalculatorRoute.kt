@@ -41,7 +41,7 @@ enum class CalculatorRoute(
     Tip("tip", "Tip", Icons.Filled.Receipt),
     SalesTax("sales_tax", "Sales Tax", Icons.Filled.Receipt),
     UnitPrice("unit_price", "Unit Price", Icons.Filled.ShoppingCart),
-    WorldTime("world_time", "World Time", Icons.Filled.Public),
+    WorldTime("world_time", "US Time", Icons.Filled.Public),
     Ovulation("ovulation", "Ovulation", Icons.Filled.Woman),
     Hex("hex", "Hex", Icons.Filled.Hexagon),
     Savings("savings", "Savings", Icons.AutoMirrored.Filled.ShowChart),

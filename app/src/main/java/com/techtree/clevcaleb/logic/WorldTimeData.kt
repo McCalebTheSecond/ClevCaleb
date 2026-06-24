@@ -1,28 +1,31 @@
 package com.techtree.clevcaleb.logic
 
-data class WorldCity(val city: String, val country: String, val timezone: String)
+data class UsCity(val city: String, val state: String, val timezone: String) {
+    val label: String get() = "$city, $state"
+}
 
+/** US time zones and major cities (English, US-only build). */
 object WorldTimeData {
     val cities = listOf(
-        WorldCity("New York", "USA", "America/New_York"),
-        WorldCity("Los Angeles", "USA", "America/Los_Angeles"),
-        WorldCity("Chicago", "USA", "America/Chicago"),
-        WorldCity("Toronto", "Canada", "America/Toronto"),
-        WorldCity("London", "UK", "Europe/London"),
-        WorldCity("Paris", "France", "Europe/Paris"),
-        WorldCity("Berlin", "Germany", "Europe/Berlin"),
-        WorldCity("Tokyo", "Japan", "Asia/Tokyo"),
-        WorldCity("Seoul", "South Korea", "Asia/Seoul"),
-        WorldCity("Shanghai", "China", "Asia/Shanghai"),
-        WorldCity("Hong Kong", "China", "Asia/Hong_Kong"),
-        WorldCity("Singapore", "Singapore", "Asia/Singapore"),
-        WorldCity("Mumbai", "India", "Asia/Kolkata"),
-        WorldCity("Dubai", "UAE", "Asia/Dubai"),
-        WorldCity("Sydney", "Australia", "Australia/Sydney"),
-        WorldCity("Auckland", "New Zealand", "Pacific/Auckland"),
-        WorldCity("São Paulo", "Brazil", "America/Sao_Paulo"),
-        WorldCity("Mexico City", "Mexico", "America/Mexico_City"),
-        WorldCity("Bolivar", "USA", "America/Chicago"),
-        WorldCity("Johannesburg", "South Africa", "Africa/Johannesburg"),
+        UsCity("New York", "NY", "America/New_York"),
+        UsCity("Washington", "DC", "America/New_York"),
+        UsCity("Atlanta", "GA", "America/New_York"),
+        UsCity("Miami", "FL", "America/New_York"),
+        UsCity("Boston", "MA", "America/New_York"),
+        UsCity("Detroit", "MI", "America/Detroit"),
+        UsCity("Chicago", "IL", "America/Chicago"),
+        UsCity("Bolivar", "MO", "America/Chicago"),
+        UsCity("Dallas", "TX", "America/Chicago"),
+        UsCity("Houston", "TX", "America/Chicago"),
+        UsCity("Minneapolis", "MN", "America/Chicago"),
+        UsCity("Denver", "CO", "America/Denver"),
+        UsCity("Phoenix", "AZ", "America/Phoenix"),
+        UsCity("Salt Lake City", "UT", "America/Denver"),
+        UsCity("Los Angeles", "CA", "America/Los_Angeles"),
+        UsCity("Seattle", "WA", "America/Los_Angeles"),
+        UsCity("San Francisco", "CA", "America/Los_Angeles"),
+        UsCity("Las Vegas", "NV", "America/Los_Angeles"),
+        UsCity("Anchorage", "AK", "America/Anchorage"),
+        UsCity("Honolulu", "HI", "Pacific/Honolulu"),
     )
 }
