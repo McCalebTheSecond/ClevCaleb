@@ -43,9 +43,6 @@ import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
 
-/** Digits and decimal — no haptic; action/operator keys get a single tap feedback. */
-private val SILENT_KEYS = setOf("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "00", ".")
-
 /** Keypad sizing tuned to match ClevCalc's large, thumb-friendly layout. */
 private object CalcSizing {
     val keyHeight = 76.dp
@@ -109,7 +106,7 @@ fun MainCalculatorScreen(
     }
 
     fun handleKey(key: String) {
-        if (key !in SILENT_KEYS) haptic()
+        haptic()
         when (key) {
             "C" -> {
                 expression = ""
