@@ -4,6 +4,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,6 +42,9 @@ import com.techtree.clevcaleb.logic.Formatters
 import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
+
+/** Digits and decimal — no haptic; action/operator keys get a single tap feedback. */
+private val SILENT_KEYS = setOf("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "00", ".")
 
 /** Keypad sizing tuned to match ClevCalc's large, thumb-friendly layout. */
 private object CalcSizing {
@@ -83,6 +88,12 @@ fun MainCalculatorScreen(
         }
     }
 
+    DisposableEffect(keepRecord) {
+        onDispose {
+            if (keepRecord) viewModel.flushLastExpression(expression)
+        }
+    }
+
     val preview = remember(expression, angleMode, decimalPlaces) {
         MathEngine.evaluate(expression, angleMode)?.let { Formatters.calculator(it, decimalPlaces) } ?: ""
     }
@@ -93,17 +104,16 @@ fun MainCalculatorScreen(
     }
 
     fun append(token: String) {
-        haptic()
         expression += token
         if (keepRecord) viewModel.setLastExpression(expression)
     }
 
     fun handleKey(key: String) {
-        haptic()
+        if (key !in SILENT_KEYS) haptic()
         when (key) {
             "C" -> {
                 expression = ""
-                if (keepRecord) viewModel.setLastExpression("")
+                if (keepRecord) viewModel.setLastExpression("", immediate = true)
             }
             "⌫" -> {
                 if (expression.isNotEmpty()) {
@@ -118,7 +128,7 @@ fun MainCalculatorScreen(
                     val entry = "$expression = $formatted"
                     viewModel.addHistory(entry)
                     expression = formatted
-                    if (keepRecord) viewModel.setLastExpression(expression)
+                    if (keepRecord) viewModel.setLastExpression(expression, immediate = true)
                 }
             }
             "()" -> append("(")
@@ -180,7 +190,9 @@ fun MainCalculatorScreen(
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                CalcUtilityKey("…", modifier = Modifier.weight(1f)) { scientificOpen = !scientificOpen }
+                CalcUtilityKey("…", modifier = Modifier.weight(1f), onHaptic = ::haptic) {
+                    scientificOpen = !scientificOpen
+                }
                 CalcUtilityKey("^", modifier = Modifier.weight(1f)) { handleKey("^") }
                 CalcUtilityKey("⌫", modifier = Modifier.weight(1f)) { handleKey("⌫") }
             }
@@ -201,6 +213,7 @@ fun MainCalculatorScreen(
                                     compact = true,
                                 ) {
                                     if (key == "DEG") {
+                                        haptic()
                                         angleMode = if (angleMode == MathEngine.AngleMode.DEG) {
                                             MathEngine.AngleMode.RAD
                                         } else {
@@ -334,7 +347,11 @@ private fun CalcKey(
         modifier = modifier
             .background(bg, RoundedCornerShape(CalcSizing.keyCorner))
             .border(1.dp, HermesColors.Border, RoundedCornerShape(CalcSizing.keyCorner))
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -346,12 +363,24 @@ private fun CalcKey(
 }
 
 @Composable
-private fun CalcUtilityKey(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun CalcUtilityKey(
+    label: String,
+    modifier: Modifier = Modifier,
+    onHaptic: () -> Unit = {},
+    onClick: () -> Unit,
+) {
     Box(
         modifier = modifier
             .padding(horizontal = 4.dp)
             .height(CalcSizing.utilityRowHeight)
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    onHaptic()
+                    onClick()
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         if (label == "…") {

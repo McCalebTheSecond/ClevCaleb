@@ -26,6 +26,10 @@ object UnitConverterLogic {
             UnitDef(id, label, { v -> v * factor }, { v -> v / factor })
         }
 
+    private val unitLookup: Map<UnitCategory, Map<String, UnitDef>> by lazy {
+        categories.mapValues { (_, units) -> units.associateBy { it.id } }
+    }
+
     val categories: Map<UnitCategory, List<UnitDef>> = mapOf(
         UnitCategory.LENGTH to units(
             "mm" to ("Millimeter (mm)" to 0.001),
@@ -105,9 +109,9 @@ object UnitConverterLogic {
     )
 
     fun convert(value: Double, fromId: String, toId: String, category: UnitCategory): Double? {
-        val unitList = categories[category] ?: return null
-        val from = unitList.find { it.id == fromId } ?: return null
-        val to = unitList.find { it.id == toId } ?: return null
+        val lookup = unitLookup[category] ?: return null
+        val from = lookup[fromId] ?: return null
+        val to = lookup[toId] ?: return null
         return to.fromBase(from.toBase(value))
     }
 

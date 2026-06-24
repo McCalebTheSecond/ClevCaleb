@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 data class Currency(val code: String, val name: String, val symbol: String)
 
@@ -32,7 +33,13 @@ object CurrencyRepository {
         "CHF" to 0.88,
     )
 
-    private val client = OkHttpClient()
+    private val currencyCodes = currencies.map { it.code }.toSet()
+
+    private val client = OkHttpClient.Builder()
+        .callTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .build()
 
     suspend fun fetchRates(): Map<String, Double> = withContext(Dispatchers.IO) {
         try {
@@ -45,7 +52,7 @@ object CurrencyRepository {
                 val rates = mutableMapOf("USD" to 1.0)
                 val ratesObj = json.getJSONObject("rates")
                 ratesObj.keys().forEach { key ->
-                    if (currencies.any { it.code == key }) {
+                    if (key in currencyCodes) {
                         rates[key] = ratesObj.getDouble(key)
                     }
                 }
