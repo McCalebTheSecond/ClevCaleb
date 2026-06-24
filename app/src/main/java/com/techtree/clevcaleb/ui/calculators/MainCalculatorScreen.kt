@@ -1,0 +1,332 @@
+package com.techtree.clevcaleb.ui.calculators
+
+import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.techtree.clevcaleb.logic.Formatters
+import com.techtree.clevcaleb.logic.MathEngine
+import com.techtree.clevcaleb.theme.HermesColors
+import com.techtree.clevcaleb.ui.AppViewModel
+
+@Composable
+fun MainCalculatorScreen(
+    viewModel: AppViewModel,
+    onOpenDrawer: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    val keepRecord by viewModel.keepCalcRecord.collectAsState()
+    val vibration by viewModel.buttonVibration.collectAsState()
+    val savedExpr by viewModel.lastExpression.collectAsState()
+    val history by viewModel.history.collectAsState()
+
+    var expression by remember { mutableStateOf("") }
+    var scientificOpen by remember { mutableStateOf(false) }
+    var angleMode by remember { mutableStateOf(MathEngine.AngleMode.DEG) }
+    var showHistory by remember { mutableStateOf(false) }
+    var decimalPlaces by remember { mutableStateOf(6) }
+    var showDecimalDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(savedExpr, keepRecord) {
+        if (keepRecord && savedExpr.isNotEmpty() && expression.isEmpty()) {
+            expression = savedExpr
+        }
+    }
+
+    val preview = remember(expression, angleMode) {
+        MathEngine.evaluate(expression, angleMode)?.let { Formatters.number(it, decimalPlaces) } ?: ""
+    }
+
+    val view = LocalView.current
+    fun haptic() {
+        if (vibration) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+    }
+
+    fun append(token: String) {
+        haptic()
+        expression += token
+        if (keepRecord) viewModel.setLastExpression(expression)
+    }
+
+    fun handleKey(key: String) {
+        haptic()
+        when (key) {
+            "C" -> {
+                expression = ""
+                if (keepRecord) viewModel.setLastExpression("")
+            }
+            "⌫" -> {
+                if (expression.isNotEmpty()) {
+                    expression = expression.dropLast(1)
+                    if (keepRecord) viewModel.setLastExpression(expression)
+                }
+            }
+            "=" -> {
+                val result = MathEngine.evaluate(expression, angleMode)
+                if (result != null) {
+                    val formatted = Formatters.number(result, decimalPlaces)
+                    val entry = "$expression = $formatted"
+                    viewModel.addHistory(entry)
+                    expression = formatted
+                    if (keepRecord) viewModel.setLastExpression(expression)
+                }
+            }
+            "()" -> append("(")
+            "÷" -> append("÷")
+            "×" -> append("×")
+            "−" -> append("−")
+            "+" -> append("+")
+            "%" -> append("/100*")
+            "^" -> append("^")
+            "00" -> append("00")
+            "√" -> append("sqrt(")
+            "x²" -> append("^2")
+            "π" -> append("π")
+            "e" -> append("e")
+            "sin", "cos", "tan", "log", "ln" -> append("$key(")
+            else -> append(key)
+        }
+    }
+
+    com.techtree.clevcaleb.ui.ClevCalcScaffold(
+        onOpenDrawer = onOpenDrawer,
+        onHistory = { showHistory = true },
+        onSettings = onSettings,
+        onDecimalPlaces = { showDecimalDialog = true },
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .background(HermesColors.Card, RoundedCornerShape(8.dp))
+                    .border(1.dp, HermesColors.Border, RoundedCornerShape(8.dp))
+                    .padding(16.dp),
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = preview.ifEmpty { " " },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = HermesColors.MutedForeground,
+                    )
+                    BasicTextField(
+                        value = expression,
+                        onValueChange = {
+                            expression = it
+                            if (keepRecord) viewModel.setLastExpression(it)
+                        },
+                        textStyle = MaterialTheme.typography.displaySmall.copy(
+                            color = HermesColors.Foreground,
+                            textAlign = TextAlign.End,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                CalcUtilityKey("…", modifier = Modifier.weight(1f)) { scientificOpen = !scientificOpen }
+                CalcUtilityKey("^", modifier = Modifier.weight(1f)) { handleKey("^") }
+                CalcUtilityKey("⌫", modifier = Modifier.weight(1f)) { handleKey("⌫") }
+            }
+
+            if (scientificOpen) {
+                val sciKeys = listOf("sin", "cos", "tan", "log", "ln", "√", "x²", "π", "e", "DEG")
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                    sciKeys.chunked(5).forEach { row ->
+                        Column(modifier = Modifier.weight(1f)) {
+                            row.forEach { key ->
+                                CalcKey(
+                                    label = key,
+                                    modifier = Modifier.fillMaxWidth().padding(2.dp),
+                                    isOperator = true,
+                                ) {
+                                    if (key == "DEG") {
+                                        angleMode = if (angleMode == MathEngine.AngleMode.DEG) {
+                                            MathEngine.AngleMode.RAD
+                                        } else {
+                                            MathEngine.AngleMode.DEG
+                                        }
+                                    } else {
+                                        handleKey(key)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClevCalcKeypad(onKey = ::handleKey)
+        }
+    }
+
+    if (showHistory) {
+        AlertDialog(
+            onDismissRequest = { showHistory = false },
+            title = { Text("History") },
+            text = {
+                Column {
+                    if (history.isEmpty()) {
+                        Text("No calculations yet.")
+                    } else {
+                        history.forEach { item ->
+                            TextButton(onClick = {
+                                expression = item.substringBefore(" = ")
+                                showHistory = false
+                            }) {
+                                Text(item, color = HermesColors.Foreground)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setHistory(emptyList())
+                    showHistory = false
+                }) { Text("Clear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHistory = false }) { Text("Close") }
+            },
+            containerColor = HermesColors.Card,
+            titleContentColor = HermesColors.Foreground,
+            textContentColor = HermesColors.Foreground,
+        )
+    }
+
+    if (showDecimalDialog) {
+        AlertDialog(
+            onDismissRequest = { showDecimalDialog = false },
+            title = { Text("Decimal places") },
+            text = {
+                Column {
+                    listOf(2, 4, 6, 8, 10).forEach { n ->
+                        TextButton(onClick = {
+                            decimalPlaces = n
+                            showDecimalDialog = false
+                        }) { Text("$n decimal places") }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDecimalDialog = false }) { Text("Cancel") }
+            },
+            containerColor = HermesColors.Card,
+            titleContentColor = HermesColors.Foreground,
+        )
+    }
+}
+
+@Composable
+private fun ClevCalcKeypad(onKey: (String) -> Unit) {
+    val rows = listOf(
+        listOf("C", "()", "%", "÷"),
+        listOf("7", "8", "9", "×"),
+        listOf("4", "5", "6", "−"),
+        listOf("1", "2", "3", "+"),
+        listOf("0", "00", ".", "="),
+    )
+    Column(modifier = Modifier.padding(8.dp)) {
+        rows.forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                row.forEach { key ->
+                    val isEquals = key == "="
+                    val isOperator = key in listOf("÷", "×", "−", "+", "=") || key == "C" || key == "()" || key == "%"
+                    CalcKey(
+                        label = key,
+                        modifier = Modifier.weight(1f).padding(3.dp).height(64.dp),
+                        isOperator = isOperator,
+                        isEquals = isEquals,
+                        onClick = { onKey(key) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalcKey(
+    label: String,
+    modifier: Modifier = Modifier,
+    isOperator: Boolean = false,
+    isEquals: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val bg = when {
+        isEquals -> HermesColors.NousBlue
+        isOperator -> HermesColors.Muted
+        else -> HermesColors.Card
+    }
+    val fg = when {
+        isEquals -> HermesColors.Foreground
+        isOperator -> HermesColors.NousBlue
+        else -> HermesColors.Foreground
+    }
+    Box(
+        modifier = modifier
+            .background(bg, RoundedCornerShape(6.dp))
+            .border(1.dp, HermesColors.Border, RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = if (isEquals) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+            color = fg,
+        )
+    }
+}
+
+@Composable
+private fun CalcUtilityKey(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+            .height(44.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (label == "…") {
+            Icon(Icons.Filled.MoreHoriz, contentDescription = "Scientific", tint = HermesColors.NousBlue)
+        } else {
+            Text(label, color = HermesColors.NousBlue, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
