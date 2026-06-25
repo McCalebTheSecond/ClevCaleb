@@ -11,13 +11,13 @@ object MathEngine {
     private val tanDegPattern = Regex("""\btan\(""")
 
     /** A + B% or A - B% where B% means B percent of A (ClevCalc / GNOME style). */
-    private val addSubPercentPattern = Regex("""([\d.]+)([+\-])([\d.]+)%""")
+    private val addSubPercentPattern = Regex("""([\d,]+(?:\.[\d,]*)?)([+\-])([\d,]+(?:\.[\d,]*)?)%""")
 
     /** A / B% divides by the percentage value, not the raw number. */
-    private val divPercentPattern = Regex("""([\d.]+)/([\d.]+)%""")
+    private val divPercentPattern = Regex("""([\d,]+(?:\.[\d,]*)?)/([\d,]+(?:\.[\d,]*)?)%""")
 
     /** Remaining N% becomes N/100 (e.g. 5% -> 0.05, or 100*5% -> 100*5/100). */
-    private val barePercentPattern = Regex("""([\d.]+)%""")
+    private val barePercentPattern = Regex("""([\d,]+(?:\.[\d,]*)?)%""")
 
     private val sinDegFn = object : net.objecthunter.exp4j.function.Function("sinDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.sin(Math.toRadians(args[0]))
@@ -37,29 +37,43 @@ object MathEngine {
         return result
     }
 
+    internal fun stripGrouping(expression: String): String = expression.replace(",", "")
+
+    fun isPreviewable(expression: String): Boolean {
+        val cleaned = stripGrouping(expression)
+            .replace("×", "*")
+            .replace("÷", "/")
+            .replace("−", "-")
+            .trim()
+        if (cleaned.isEmpty()) return false
+        return stripTrailingOperators(cleaned).isNotEmpty()
+    }
+
     internal fun preprocessPercentages(expression: String): String {
-        var result = expression
+        var result = stripGrouping(expression)
 
         result = addSubPercentPattern.replace(result) { match ->
-            val left = match.groupValues[1]
+            val left = stripGrouping(match.groupValues[1])
             val op = match.groupValues[2]
-            val pct = match.groupValues[3]
+            val pct = stripGrouping(match.groupValues[3])
             if (op == "+") "$left+$left*$pct/100" else "$left-$left*$pct/100"
         }
 
         result = divPercentPattern.replace(result) { match ->
-            val a = match.groupValues[1]
-            val b = match.groupValues[2]
+            val a = stripGrouping(match.groupValues[1])
+            val b = stripGrouping(match.groupValues[2])
             "$a*100/$b"
         }
 
-        result = barePercentPattern.replace(result, "$1/100")
+        result = barePercentPattern.replace(result) {
+            "${stripGrouping(it.groupValues[1])}/100"
+        }
 
         return result
     }
 
     fun evaluate(expression: String, angleMode: AngleMode = AngleMode.DEG): Double? {
-        val cleaned = expression
+        val cleaned = stripGrouping(expression)
             .replace("×", "*")
             .replace("÷", "/")
             .replace("−", "-")

@@ -1,11 +1,11 @@
-## ClevCaleb v1.0.7
+## ClevCaleb v1.0.8
 
-Calculator display and backspace fixes since v1.0.6.
+Number formatting and live-preview fixes since v1.0.7.
 
 ### Calculator & UX
-- Backspace hold now only repeats delete — no long-press help dialog for the backspace key
-- Tapping or placing the cursor in the expression display no longer opens the system keyboard (the calculator keypad is your input)
-- Display cursor and text selection handles use the light Hermes theme color instead of the default dark caret
+- Expression display, live preview, and results now use thousands separators (e.g. `1,000+2,000` → `3,000`)
+- Live preview shows **Error** when an expression is complete enough to evaluate but cannot be calculated, instead of going blank
+- Long expressions and comma-formatted numbers evaluate correctly (grouping separators are stripped before math)
 
 ### Install
-Download **ClevCaleb-v1.0.7.apk** below and sideload on Android 8+.
+Download **ClevCaleb-v1.0.8.apk** below and sideload on Android 8+.

@@ -138,4 +138,46 @@ class CalculationsTest {
         assertEquals("0.5", Formatters.calculator(0.5))
         assertEquals("3.14", Formatters.calculator(3.14))
     }
+
+    @Test
+    fun calculatorFormattingUsesThousandsSeparators() {
+        assertEquals("3,000", Formatters.calculator(3000.0))
+        assertEquals("1,234,567", Formatters.calculator(1_234_567.0))
+    }
+
+    @Test
+    fun formatExpressionAddsThousandsSeparators() {
+        assertEquals("1,000+2,000", Formatters.formatExpression("1000+2000"))
+        assertEquals("1,234.56", Formatters.formatExpression("1234.56"))
+        assertEquals("12,345,678", Formatters.formatExpression("12345678"))
+    }
+
+    @Test
+    fun mathEngineEvaluatesFormattedExpression() {
+        val result = MathEngine.evaluate("1,000+2,000")
+        assertNotNull(result)
+        assertEquals(3000.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineLongAdditionChain() {
+        val expr = (1..200).joinToString("+")
+        val result = MathEngine.evaluate(expr)
+        assertNotNull(result)
+        assertEquals(20_100.0, result!!, 0.001)
+    }
+
+    @Test
+    fun mathEngineLongMultiplicationChain() {
+        val expr = (1..25).joinToString("×")
+        val result = MathEngine.evaluate(expr)
+        assertNotNull(result)
+    }
+
+    @Test
+    fun mathEnginePreviewableDetectsIncompleteExpression() {
+        assertEquals(false, MathEngine.isPreviewable(""))
+        assertEquals(true, MathEngine.isPreviewable("1+2+"))
+        assertEquals(true, MathEngine.isPreviewable("1,000+2,000"))
+    }
 }

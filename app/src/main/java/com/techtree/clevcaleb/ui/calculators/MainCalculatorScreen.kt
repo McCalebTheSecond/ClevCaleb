@@ -92,6 +92,7 @@ fun MainCalculatorScreen(
     val savedExpr by viewModel.lastExpression.collectAsState()
     val history by viewModel.history.collectAsState()
 
+    var rawExpression by remember { mutableStateOf("") }
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     var scientificOpen by remember { mutableStateOf(false) }
@@ -102,33 +103,54 @@ fun MainCalculatorScreen(
     var preview by remember { mutableStateOf("") }
     var helpKey by remember { mutableStateOf<String?>(null) }
 
-    val expression = textFieldValue.text
-
     fun setExpression(text: String, moveCursorToEnd: Boolean = true, immediate: Boolean = false) {
+        rawExpression = Formatters.stripGrouping(text)
+        val display = Formatters.formatExpression(rawExpression)
         textFieldValue = TextFieldValue(
-            text = text,
+            text = display,
             selection = if (moveCursorToEnd) {
-                TextRange(text.length)
+                TextRange(display.length)
             } else {
-                textFieldValue.selection
+                val selection = textFieldValue.selection
+                TextRange(
+                    selection.start.coerceIn(0, display.length),
+                    selection.end.coerceIn(0, display.length),
+                )
             },
         )
-        if (keepRecord) viewModel.setLastExpression(text, immediate = immediate)
+        if (keepRecord) viewModel.setLastExpression(rawExpression, immediate = immediate)
     }
 
-    LaunchedEffect(expression, angleMode, decimalPlaces) {
-        if (expression.isEmpty()) {
+    LaunchedEffect(rawExpression, angleMode, decimalPlaces) {
+        if (rawExpression.isEmpty()) {
             preview = ""
             return@LaunchedEffect
         }
         delay(120)
-        preview = MathEngine.evaluate(expression, angleMode)?.let { Formatters.calculator(it, decimalPlaces) } ?: ""
+        val result = MathEngine.evaluate(rawExpression, angleMode)
+        preview = when {
+            result != null -> Formatters.calculator(result, decimalPlaces)
+            MathEngine.isPreviewable(rawExpression) -> "Error"
+            else -> ""
+        }
     }
 
     LaunchedEffect(savedExpr, keepRecord) {
-        if (keepRecord && savedExpr.isNotEmpty() && expression.isEmpty()) {
+        if (keepRecord && savedExpr.isNotEmpty() && rawExpression.isEmpty()) {
             setExpression(savedExpr)
         }
+    }
+
+    LaunchedEffect(decimalPlaces) {
+        if (rawExpression.isEmpty()) return@LaunchedEffect
+        val display = Formatters.formatExpression(rawExpression)
+        textFieldValue = textFieldValue.copy(
+            text = display,
+            selection = TextRange(
+                textFieldValue.selection.start.coerceIn(0, display.length),
+                textFieldValue.selection.end.coerceIn(0, display.length),
+            ),
+        )
     }
 
     LaunchedEffect(textFieldValue.text, textFieldValue.selection) {
@@ -139,7 +161,7 @@ fun MainCalculatorScreen(
 
     DisposableEffect(keepRecord) {
         onDispose {
-            if (keepRecord) viewModel.flushLastExpression(expression)
+            if (keepRecord) viewModel.flushLastExpression(rawExpression)
         }
     }
 
@@ -161,12 +183,12 @@ fun MainCalculatorScreen(
     }
 
     fun append(token: String) {
-        setExpression(expression + token)
+        setExpression(rawExpression + token)
     }
 
     fun backspace() {
-        if (expression.isNotEmpty()) {
-            setExpression(expression.dropLast(1))
+        if (rawExpression.isNotEmpty()) {
+            setExpression(rawExpression.dropLast(1))
         }
     }
 
@@ -176,12 +198,13 @@ fun MainCalculatorScreen(
             "C" -> setExpression("", immediate = true)
             "⌫" -> backspace()
             "=" -> {
-                val result = MathEngine.evaluate(expression, angleMode)
+                val result = MathEngine.evaluate(rawExpression, angleMode)
                 if (result != null) {
                     val formatted = Formatters.calculator(result, decimalPlaces)
-                    val entry = "$expression = $formatted"
+                    val displayExpr = Formatters.formatExpression(rawExpression)
+                    val entry = "$displayExpr = $formatted"
                     viewModel.addHistory(entry)
-                    setExpression(formatted, immediate = true)
+                    setExpression(Formatters.stripGrouping(formatted), immediate = true)
                 }
             }
             "()" -> append("(")
@@ -222,14 +245,27 @@ fun MainCalculatorScreen(
                     Text(
                         text = preview.ifEmpty { " " },
                         style = CalcSizing.previewText,
-                        color = HermesColors.MutedForeground,
+                        color = if (preview == "Error") {
+                            HermesColors.Destructive
+                        } else {
+                            HermesColors.MutedForeground
+                        },
                     )
                     CompositionLocalProvider(LocalTextSelectionColors provides displaySelectionColors) {
                         BasicTextField(
                             value = textFieldValue,
                             onValueChange = { newValue ->
-                                textFieldValue = newValue
-                                if (keepRecord) viewModel.setLastExpression(newValue.text)
+                                val display = Formatters.formatExpression(rawExpression)
+                                textFieldValue = if (newValue.text == display) {
+                                    newValue
+                                } else {
+                                    textFieldValue.copy(
+                                        selection = TextRange(
+                                            newValue.selection.start.coerceIn(0, display.length),
+                                            newValue.selection.end.coerceIn(0, display.length),
+                                        ),
+                                    )
+                                }
                             },
                             readOnly = true,
                             textStyle = CalcSizing.displayText.copy(
