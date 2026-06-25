@@ -48,6 +48,7 @@ import com.techtree.clevcaleb.logic.Formatters
 import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** Keypad sizing tuned to match ClevCalc's large, thumb-friendly layout. */
@@ -85,6 +86,16 @@ fun MainCalculatorScreen(
     var showHistory by remember { mutableStateOf(false) }
     var decimalPlaces by remember { mutableStateOf(10) }
     var showDecimalDialog by remember { mutableStateOf(false) }
+    var preview by remember { mutableStateOf("") }
+
+    LaunchedEffect(expression, angleMode, decimalPlaces) {
+        if (expression.isEmpty()) {
+            preview = ""
+            return@LaunchedEffect
+        }
+        delay(120)
+        preview = MathEngine.evaluate(expression, angleMode)?.let { Formatters.calculator(it, decimalPlaces) } ?: ""
+    }
 
     LaunchedEffect(savedExpr, keepRecord) {
         if (keepRecord && savedExpr.isNotEmpty() && expression.isEmpty()) {
@@ -96,10 +107,6 @@ fun MainCalculatorScreen(
         onDispose {
             if (keepRecord) viewModel.flushLastExpression(expression)
         }
-    }
-
-    val preview = remember(expression, angleMode, decimalPlaces) {
-        MathEngine.evaluate(expression, angleMode)?.let { Formatters.calculator(it, decimalPlaces) } ?: ""
     }
 
     val view = LocalView.current

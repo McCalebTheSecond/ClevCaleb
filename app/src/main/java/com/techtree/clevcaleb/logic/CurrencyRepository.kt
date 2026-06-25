@@ -47,20 +47,33 @@ object CurrencyRepository {
     @Volatile
     private var cacheFetchedAtMs: Long = 0
 
+    @Volatile
+    private var lastFetchFailedAtMs: Long = 0
+
     private const val CACHE_TTL_MS = 3_600_000L
+    private const val FAILURE_BACKOFF_MS = 300_000L
 
     suspend fun fetchRates(): Map<String, Double> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         cachedRates?.let { cached ->
             if (now - cacheFetchedAtMs < CACHE_TTL_MS) return@withContext cached
         }
+        if (now - lastFetchFailedAtMs < FAILURE_BACKOFF_MS) {
+            return@withContext cachedRates ?: fallbackRates
+        }
         try {
             val request = Request.Builder()
                 .url("https://api.frankfurter.app/latest?from=USD")
                 .build()
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext fallbackRates
-                val json = JSONObject(response.body?.string() ?: return@withContext fallbackRates)
+                if (!response.isSuccessful) {
+                    lastFetchFailedAtMs = now
+                    return@withContext cachedRates ?: fallbackRates
+                }
+                val json = JSONObject(response.body?.string() ?: run {
+                    lastFetchFailedAtMs = now
+                    return@withContext cachedRates ?: fallbackRates
+                })
                 val rates = mutableMapOf("USD" to 1.0)
                 val ratesObj = json.getJSONObject("rates")
                 ratesObj.keys().forEach { key ->
@@ -73,10 +86,12 @@ object CurrencyRepository {
                 }
                 cachedRates = rates
                 cacheFetchedAtMs = now
+                lastFetchFailedAtMs = 0
                 rates
             }
         } catch (_: Exception) {
-            fallbackRates
+            lastFetchFailedAtMs = now
+            cachedRates ?: fallbackRates
         }
     }
 

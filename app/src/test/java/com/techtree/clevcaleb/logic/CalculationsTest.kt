@@ -34,6 +34,21 @@ class CalculationsTest {
     }
 
     @Test
+    fun savingsBalance() {
+        val result = FinanceCalculations.savingsBalance(1000.0, 200.0, 4.5, 10.0, 0.0)
+        assertNotNull(result)
+        val (balance, contributed, interest) = result!!
+        assertEquals(1000.0 + 200.0 * 120, contributed, 0.01)
+        assertEquals(balance - contributed, interest, 0.01)
+        assertEquals(31_806.61, balance, 1.0)
+    }
+
+    @Test
+    fun savingsBalanceZeroYearsReturnsNull() {
+        assertEquals(null, FinanceCalculations.savingsBalance(1000.0, 200.0, 4.5, 0.0, 0.0))
+    }
+
+    @Test
     fun mathEngineBasic() {
         val result = MathEngine.evaluate("2+3*4")
         assertNotNull(result)

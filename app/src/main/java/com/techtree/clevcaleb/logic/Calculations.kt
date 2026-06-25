@@ -23,12 +23,15 @@ object FinanceCalculations {
         annualRatePercent: Double,
         years: Double,
         taxOnInterestPercent: Double,
-    ): Triple<Double, Double, Double> {
+    ): Triple<Double, Double, Double>? {
         val months = (years * 12).toInt()
+        if (months <= 0) return null
         val r = annualRatePercent / 100 / 12 * (1 - taxOnInterestPercent / 100)
-        var balance = initial
-        for (_i in 0 until months) {
-            balance = balance * (1 + r) + monthly
+        val balance = if (r == 0.0) {
+            initial + monthly * months
+        } else {
+            val factor = (1 + r).pow(months)
+            initial * factor + monthly * (factor - 1) / r
         }
         val contributed = initial + monthly * months
         return Triple(balance, contributed, balance - contributed)

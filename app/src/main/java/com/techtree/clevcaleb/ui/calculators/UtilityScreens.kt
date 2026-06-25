@@ -140,6 +140,7 @@ fun FuelEfficiencyScreen(onBack: () -> Unit) {
         val f = fuel.toDoubleOrNull() ?: return@remember null
         if (f <= 0) return@remember null
         val mpg = d / f
+        if (mpg <= 0) return@remember null
         val l100 = 235.215 / mpg
         Triple(
             "${Formatters.number(mpg)} MPG",
