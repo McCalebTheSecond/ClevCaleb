@@ -1,10 +1,13 @@
 package com.techtree.clevcaleb.ui.calculators
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -39,8 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,6 +74,7 @@ private object CalcSizing {
     val utilityIconSize = 32.dp
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainCalculatorScreen(
     viewModel: AppViewModel,
@@ -80,13 +86,28 @@ fun MainCalculatorScreen(
     val savedExpr by viewModel.lastExpression.collectAsState()
     val history by viewModel.history.collectAsState()
 
-    var expression by remember { mutableStateOf("") }
+    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     var scientificOpen by remember { mutableStateOf(false) }
     var angleMode by remember { mutableStateOf(MathEngine.AngleMode.DEG) }
     var showHistory by remember { mutableStateOf(false) }
     var decimalPlaces by remember { mutableStateOf(10) }
     var showDecimalDialog by remember { mutableStateOf(false) }
     var preview by remember { mutableStateOf("") }
+
+    val expression = textFieldValue.text
+
+    fun setExpression(text: String, moveCursorToEnd: Boolean = true, immediate: Boolean = false) {
+        textFieldValue = TextFieldValue(
+            text = text,
+            selection = if (moveCursorToEnd) {
+                TextRange(text.length)
+            } else {
+                textFieldValue.selection
+            },
+        )
+        if (keepRecord) viewModel.setLastExpression(text, immediate = immediate)
+    }
 
     LaunchedEffect(expression, angleMode, decimalPlaces) {
         if (expression.isEmpty()) {
@@ -99,7 +120,13 @@ fun MainCalculatorScreen(
 
     LaunchedEffect(savedExpr, keepRecord) {
         if (keepRecord && savedExpr.isNotEmpty() && expression.isEmpty()) {
-            expression = savedExpr
+            setExpression(savedExpr)
+        }
+    }
+
+    LaunchedEffect(textFieldValue.text, textFieldValue.selection) {
+        if (textFieldValue.selection.end == textFieldValue.text.length) {
+            bringIntoViewRequester.bringIntoView()
         }
     }
 
@@ -115,24 +142,19 @@ fun MainCalculatorScreen(
     }
 
     fun append(token: String) {
-        expression += token
-        if (keepRecord) viewModel.setLastExpression(expression)
+        setExpression(expression + token)
     }
 
     fun backspace() {
         if (expression.isNotEmpty()) {
-            expression = expression.dropLast(1)
-            if (keepRecord) viewModel.setLastExpression(expression)
+            setExpression(expression.dropLast(1))
         }
     }
 
     fun handleKey(key: String) {
         haptic()
         when (key) {
-            "C" -> {
-                expression = ""
-                if (keepRecord) viewModel.setLastExpression("", immediate = true)
-            }
+            "C" -> setExpression("", immediate = true)
             "⌫" -> backspace()
             "=" -> {
                 val result = MathEngine.evaluate(expression, angleMode)
@@ -140,8 +162,7 @@ fun MainCalculatorScreen(
                     val formatted = Formatters.calculator(result, decimalPlaces)
                     val entry = "$expression = $formatted"
                     viewModel.addHistory(entry)
-                    expression = formatted
-                    if (keepRecord) viewModel.setLastExpression(expression, immediate = true)
+                    setExpression(formatted, immediate = true)
                 }
             }
             "()" -> append("(")
@@ -185,16 +206,18 @@ fun MainCalculatorScreen(
                         color = HermesColors.MutedForeground,
                     )
                     BasicTextField(
-                        value = expression,
-                        onValueChange = {
-                            expression = it
-                            if (keepRecord) viewModel.setLastExpression(it)
+                        value = textFieldValue,
+                        onValueChange = { newValue ->
+                            textFieldValue = newValue
+                            if (keepRecord) viewModel.setLastExpression(newValue.text)
                         },
                         textStyle = CalcSizing.displayText.copy(
                             color = HermesColors.Foreground,
                             textAlign = TextAlign.End,
                         ),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewRequester(bringIntoViewRequester),
                         singleLine = true,
                     )
                 }
@@ -263,7 +286,7 @@ fun MainCalculatorScreen(
                     } else {
                         history.forEach { item ->
                             TextButton(onClick = {
-                                expression = item.substringBefore(" = ")
+                                setExpression(item.substringBefore(" = "))
                                 showHistory = false
                             }) {
                                 Text(item, color = HermesColors.Foreground)
