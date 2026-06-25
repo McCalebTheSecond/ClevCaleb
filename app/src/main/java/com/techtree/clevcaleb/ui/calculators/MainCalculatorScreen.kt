@@ -1,10 +1,11 @@
 package com.techtree.clevcaleb.ui.calculators
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -69,6 +70,7 @@ private object CalcSizing {
     val utilityIconSize = 32.dp
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainCalculatorScreen(
     viewModel: AppViewModel,
@@ -87,6 +89,7 @@ fun MainCalculatorScreen(
     var decimalPlaces by remember { mutableStateOf(10) }
     var showDecimalDialog by remember { mutableStateOf(false) }
     var preview by remember { mutableStateOf("") }
+    var helpKey by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(expression, angleMode, decimalPlaces) {
         if (expression.isEmpty()) {
@@ -112,6 +115,11 @@ fun MainCalculatorScreen(
     val view = LocalView.current
     fun haptic() {
         if (vibration) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+    }
+
+    fun showHelp(key: String) {
+        haptic()
+        helpKey = key
     }
 
     fun append(token: String) {
@@ -203,15 +211,25 @@ fun MainCalculatorScreen(
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                CalcUtilityKey("…", modifier = Modifier.weight(1f), onHaptic = ::haptic) {
+                CalcUtilityKey(
+                    label = "…",
+                    modifier = Modifier.weight(1f),
+                    onHaptic = ::haptic,
+                    onShowHelp = { showHelp("sci") },
+                ) {
                     scientificOpen = !scientificOpen
                 }
-                CalcUtilityKey("^", modifier = Modifier.weight(1f)) { handleKey("^") }
+                CalcUtilityKey(
+                    label = "^",
+                    modifier = Modifier.weight(1f),
+                    onShowHelp = { showHelp("^") },
+                ) { handleKey("^") }
                 CalcUtilityKey(
                     label = "⌫",
                     modifier = Modifier.weight(1f),
                     repeatOnHold = true,
                     onHaptic = ::haptic,
+                    onShowHelp = { showHelp("⌫") },
                     onClick = ::backspace,
                 )
             }
@@ -230,26 +248,43 @@ fun MainCalculatorScreen(
                                         .height(CalcSizing.sciKeyHeight),
                                     isOperator = true,
                                     compact = true,
-                                ) {
-                                    if (key == "DEG") {
-                                        haptic()
-                                        angleMode = if (angleMode == MathEngine.AngleMode.DEG) {
-                                            MathEngine.AngleMode.RAD
+                                    onClick = {
+                                        if (key == "DEG") {
+                                            haptic()
+                                            angleMode = if (angleMode == MathEngine.AngleMode.DEG) {
+                                                MathEngine.AngleMode.RAD
+                                            } else {
+                                                MathEngine.AngleMode.DEG
+                                            }
                                         } else {
-                                            MathEngine.AngleMode.DEG
+                                            handleKey(key)
                                         }
-                                    } else {
-                                        handleKey(key)
-                                    }
-                                }
+                                    },
+                                    onShowHelp = {
+                                        if (key == "DEG") {
+                                            showHelp(
+                                                if (angleMode == MathEngine.AngleMode.DEG) "DEG" else "RAD",
+                                            )
+                                        } else {
+                                            showHelp(key)
+                                        }
+                                    },
+                                )
                             }
                         }
                     }
                 }
             }
 
-            ClevCalcKeypad(onKey = ::handleKey)
+            ClevCalcKeypad(onKey = ::handleKey, onShowHelp = ::showHelp)
         }
+    }
+
+    helpKey?.let { key ->
+        CalcButtonHelpDialog(
+            help = calcButtonHelp(key, angleMode),
+            onDismiss = { helpKey = null },
+        )
     }
 
     if (showHistory) {
@@ -312,7 +347,10 @@ fun MainCalculatorScreen(
 }
 
 @Composable
-private fun ClevCalcKeypad(onKey: (String) -> Unit) {
+private fun ClevCalcKeypad(
+    onKey: (String) -> Unit,
+    onShowHelp: (String) -> Unit,
+) {
     val rows = listOf(
         listOf("C", "()", "%", "÷"),
         listOf("7", "8", "9", "×"),
@@ -335,6 +373,7 @@ private fun ClevCalcKeypad(onKey: (String) -> Unit) {
                         isOperator = isOperator,
                         isEquals = isEquals,
                         onClick = { onKey(key) },
+                        onShowHelp = { onShowHelp(key) },
                     )
                 }
             }
@@ -342,6 +381,7 @@ private fun ClevCalcKeypad(onKey: (String) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CalcKey(
     label: String,
@@ -350,6 +390,7 @@ private fun CalcKey(
     isEquals: Boolean = false,
     compact: Boolean = false,
     onClick: () -> Unit,
+    onShowHelp: () -> Unit = {},
 ) {
     val bg = when {
         isEquals -> HermesColors.NousBlue
@@ -365,12 +406,15 @@ private fun CalcKey(
     val shape = RoundedCornerShape(CalcSizing.keyCorner)
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+            onLongClick = onShowHelp,
+        ),
         shape = shape,
         color = bg,
         border = BorderStroke(1.dp, HermesColors.Border),
-        interactionSource = interactionSource,
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -385,12 +429,14 @@ private fun CalcKey(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CalcUtilityKey(
     label: String,
     modifier: Modifier = Modifier,
     repeatOnHold: Boolean = false,
     onHaptic: () -> Unit = {},
+    onShowHelp: () -> Unit = {},
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -402,15 +448,17 @@ private fun CalcUtilityKey(
                 Modifier.repeatOnHold(
                     onHaptic = onHaptic,
                     onRepeat = onClick,
+                    onShowHelp = onShowHelp,
                 )
             } else {
-                Modifier.clickable(
+                Modifier.combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
                         onHaptic()
                         onClick()
                     },
+                    onLongClick = onShowHelp,
                 )
             },
         )
@@ -434,22 +482,43 @@ private fun CalcUtilityKey(
 private fun Modifier.repeatOnHold(
     initialDelayMillis: Long = 400,
     repeatIntervalMillis: Long = 75,
+    helpDelayMillis: Long = CALC_BUTTON_HELP_HOLD_MS,
     onHaptic: () -> Unit = {},
     onRepeat: () -> Unit,
-): Modifier = pointerInput(onRepeat) {
+    onShowHelp: () -> Unit = {},
+): Modifier = pointerInput(onRepeat, onShowHelp) {
     awaitEachGesture {
         awaitFirstDown()
         onHaptic()
         onRepeat()
-        var isFirst = true
+
+        val startTime = System.currentTimeMillis()
+        var nextRepeatAt = startTime + initialDelayMillis
+        var helpShown = false
+
         while (true) {
-            val delay = if (isFirst) initialDelayMillis else repeatIntervalMillis
-            val released = withTimeoutOrNull(delay) {
+            val now = System.currentTimeMillis()
+            if (!helpShown && now >= startTime + helpDelayMillis) {
+                helpShown = true
+                onShowHelp()
+                break
+            }
+
+            val waitUntil = if (helpShown) {
+                Long.MAX_VALUE
+            } else {
+                minOf(nextRepeatAt, startTime + helpDelayMillis)
+            }
+            val waitMs = (waitUntil - now).coerceAtLeast(1)
+            val released = withTimeoutOrNull(waitMs) {
                 waitForUpOrCancellation()
             }
             if (released != null) break
-            onRepeat()
-            isFirst = false
+
+            if (!helpShown && System.currentTimeMillis() >= nextRepeatAt) {
+                onRepeat()
+                nextRepeatAt = System.currentTimeMillis() + repeatIntervalMillis
+            }
         }
     }
 }
