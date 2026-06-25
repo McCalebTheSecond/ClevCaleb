@@ -64,6 +64,14 @@ class AppPreferences(private val context: Context) {
     suspend fun setLastExpression(expr: String) = edit(PrefKeys.LAST_EXPRESSION, expr)
     suspend fun setHistory(items: List<String>) = edit(PrefKeys.HISTORY, items.joinToString("\n"))
 
+    suspend fun addHistoryEntry(entry: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[PrefKeys.HISTORY]?.split("\n")?.filter { it.isNotBlank() } ?: emptyList()
+            val next = (listOf(entry) + current.filter { it != entry }).take(50)
+            prefs[PrefKeys.HISTORY] = next.joinToString("\n")
+        }
+    }
+
     private suspend fun <T> edit(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { it[key] = value }
     }

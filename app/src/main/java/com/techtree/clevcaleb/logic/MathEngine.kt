@@ -19,9 +19,6 @@ object MathEngine {
     /** Remaining N% becomes N/100 (e.g. 5% -> 0.05, or 100*5% -> 100*5/100). */
     private val barePercentPattern = Regex("""([\d.]+)%""")
 
-    /** Trailing operators that leave an expression incomplete for evaluation. */
-    private val trailingOperatorPattern = Regex("""[+\-*/^]$""")
-
     private val sinDegFn = object : net.objecthunter.exp4j.function.Function("sinDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.sin(Math.toRadians(args[0]))
     }
@@ -33,8 +30,8 @@ object MathEngine {
     }
 
     internal fun stripTrailingOperators(expression: String): String {
-        var result = expression.trim()
-        while (result.isNotEmpty() && trailingOperatorPattern.containsMatchIn(result)) {
+        var result = expression.trimEnd()
+        while (result.isNotEmpty() && result.last() in "+-*/^") {
             result = result.dropLast(1).trimEnd()
         }
         return result

@@ -18,8 +18,6 @@ enum class UnitCategory(val label: String) {
 data class UnitDef(val id: String, val label: String, val toBase: (Double) -> Double, val fromBase: (Double) -> Double)
 
 object UnitConverterLogic {
-    private fun linear(factor: Double) = UnitDef("", "", { v -> v * factor }, { v -> v / factor })
-
     private fun units(vararg pairs: Pair<String, Pair<String, Double>>): List<UnitDef> =
         pairs.map { (id, labelFactor) ->
             val (label, factor) = labelFactor

@@ -49,10 +49,7 @@ class AppViewModel(private val prefs: AppPreferences) : ViewModel() {
 
     fun flushLastExpression(expr: String) = setLastExpression(expr, immediate = true)
     fun setHistory(items: List<String>) = viewModelScope.launch { prefs.setHistory(items) }
-    fun addHistory(entry: String) = viewModelScope.launch {
-        val next = listOf(entry) + history.value.filter { it != entry }
-        prefs.setHistory(next.take(50))
-    }
+    fun addHistory(entry: String) = viewModelScope.launch { prefs.addHistoryEntry(entry) }
 }
 
 class AppViewModelFactory(private val prefs: AppPreferences) : ViewModelProvider.Factory {

@@ -1,6 +1,8 @@
 package com.techtree.clevcaleb.logic
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -53,6 +55,8 @@ object CurrencyRepository {
     private const val CACHE_TTL_MS = 3_600_000L
     private const val FAILURE_BACKOFF_MS = 300_000L
 
+    private val fetchMutex = Mutex()
+
     suspend fun fetchRates(): Map<String, Double> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         cachedRates?.let { cached ->
@@ -61,38 +65,49 @@ object CurrencyRepository {
         if (now - lastFetchFailedAtMs < FAILURE_BACKOFF_MS) {
             return@withContext cachedRates ?: fallbackRates
         }
-        try {
-            val request = Request.Builder()
-                .url("https://api.frankfurter.app/latest?from=USD")
-                .build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    lastFetchFailedAtMs = now
-                    return@withContext cachedRates ?: fallbackRates
-                }
-                val json = JSONObject(response.body?.string() ?: run {
-                    lastFetchFailedAtMs = now
-                    return@withContext cachedRates ?: fallbackRates
-                })
-                val rates = mutableMapOf("USD" to 1.0)
-                val ratesObj = json.getJSONObject("rates")
-                ratesObj.keys().forEach { key ->
-                    if (key in currencyCodes) {
-                        rates[key] = ratesObj.getDouble(key)
-                    }
-                }
-                fallbackRates.forEach { (code, rate) ->
-                    if (code !in rates) rates[code] = rate
-                }
-                cachedRates = rates
-                cacheFetchedAtMs = now
-                lastFetchFailedAtMs = 0
-                rates
+        fetchMutex.withLock {
+            val lockedNow = System.currentTimeMillis()
+            cachedRates?.let { cached ->
+                if (lockedNow - cacheFetchedAtMs < CACHE_TTL_MS) return@withLock cached
             }
-        } catch (_: Exception) {
-            lastFetchFailedAtMs = now
-            cachedRates ?: fallbackRates
+            if (lockedNow - lastFetchFailedAtMs < FAILURE_BACKOFF_MS) {
+                return@withLock cachedRates ?: fallbackRates
+            }
+            fetchRatesFromNetwork(lockedNow)
         }
+    }
+
+    private fun fetchRatesFromNetwork(now: Long): Map<String, Double> = try {
+        val request = Request.Builder()
+            .url("https://api.frankfurter.app/latest?from=USD")
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                lastFetchFailedAtMs = now
+                return cachedRates ?: fallbackRates
+            }
+            val json = JSONObject(response.body?.string() ?: run {
+                lastFetchFailedAtMs = now
+                return cachedRates ?: fallbackRates
+            })
+            val rates = mutableMapOf("USD" to 1.0)
+            val ratesObj = json.getJSONObject("rates")
+            ratesObj.keys().forEach { key ->
+                if (key in currencyCodes) {
+                    rates[key] = ratesObj.getDouble(key)
+                }
+            }
+            fallbackRates.forEach { (code, rate) ->
+                if (code !in rates) rates[code] = rate
+            }
+            cachedRates = rates
+            cacheFetchedAtMs = now
+            lastFetchFailedAtMs = 0
+            rates
+        }
+    } catch (_: Exception) {
+        lastFetchFailedAtMs = now
+        cachedRates ?: fallbackRates
     }
 
     fun convert(amount: Double, from: String, to: String, rates: Map<String, Double>): Double {
