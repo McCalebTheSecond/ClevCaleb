@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
@@ -31,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,7 +43,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -138,6 +144,13 @@ fun MainCalculatorScreen(
     }
 
     val view = LocalView.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val displaySelectionColors = remember {
+        TextSelectionColors(
+            handleColor = HermesColors.Primary,
+            backgroundColor = HermesColors.Primary.copy(alpha = 0.35f),
+        )
+    }
     fun haptic() {
         if (vibration) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
@@ -211,21 +224,30 @@ fun MainCalculatorScreen(
                         style = CalcSizing.previewText,
                         color = HermesColors.MutedForeground,
                     )
-                    BasicTextField(
-                        value = textFieldValue,
-                        onValueChange = { newValue ->
-                            textFieldValue = newValue
-                            if (keepRecord) viewModel.setLastExpression(newValue.text)
-                        },
-                        textStyle = CalcSizing.displayText.copy(
-                            color = HermesColors.Foreground,
-                            textAlign = TextAlign.End,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .bringIntoViewRequester(bringIntoViewRequester),
-                        singleLine = true,
-                    )
+                    CompositionLocalProvider(LocalTextSelectionColors provides displaySelectionColors) {
+                        BasicTextField(
+                            value = textFieldValue,
+                            onValueChange = { newValue ->
+                                textFieldValue = newValue
+                                if (keepRecord) viewModel.setLastExpression(newValue.text)
+                            },
+                            readOnly = true,
+                            textStyle = CalcSizing.displayText.copy(
+                                color = HermesColors.Foreground,
+                                textAlign = TextAlign.End,
+                            ),
+                            cursorBrush = SolidColor(HermesColors.Primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewRequester(bringIntoViewRequester)
+                                .onFocusChanged { focusState ->
+                                    if (focusState.isFocused) {
+                                        keyboardController?.hide()
+                                    }
+                                },
+                            singleLine = true,
+                        )
+                    }
                 }
             }
 
@@ -249,8 +271,8 @@ fun MainCalculatorScreen(
                     label = "⌫",
                     modifier = Modifier.weight(1f),
                     repeatOnHold = true,
+                    repeatHelpOnHold = false,
                     onHaptic = ::haptic,
-                    onShowHelp = { showHelp("⌫") },
                     onClick = ::backspace,
                 )
             }
@@ -456,6 +478,7 @@ private fun CalcUtilityKey(
     label: String,
     modifier: Modifier = Modifier,
     repeatOnHold: Boolean = false,
+    repeatHelpOnHold: Boolean = true,
     onHaptic: () -> Unit = {},
     onShowHelp: () -> Unit = {},
     onClick: () -> Unit,
@@ -469,6 +492,7 @@ private fun CalcUtilityKey(
                 Modifier.repeatOnHold(
                     onHaptic = onHaptic,
                     onRepeat = onClick,
+                    showHelpOnHold = repeatHelpOnHold,
                     onShowHelp = onShowHelp,
                 )
             } else {
@@ -504,10 +528,11 @@ private fun Modifier.repeatOnHold(
     initialDelayMillis: Long = 400,
     repeatIntervalMillis: Long = 75,
     helpDelayMillis: Long = CALC_BUTTON_HELP_HOLD_MS,
+    showHelpOnHold: Boolean = true,
     onHaptic: () -> Unit = {},
     onRepeat: () -> Unit,
     onShowHelp: () -> Unit = {},
-): Modifier = pointerInput(onRepeat, onShowHelp) {
+): Modifier = pointerInput(onRepeat, onShowHelp, showHelpOnHold) {
     awaitEachGesture {
         awaitFirstDown()
         onHaptic()
@@ -516,10 +541,11 @@ private fun Modifier.repeatOnHold(
         val startTime = System.currentTimeMillis()
         var nextRepeatAt = startTime + initialDelayMillis
         var helpShown = false
+        val helpDeadline = if (showHelpOnHold) startTime + helpDelayMillis else Long.MAX_VALUE
 
         while (true) {
             val now = System.currentTimeMillis()
-            if (!helpShown && now >= startTime + helpDelayMillis) {
+            if (showHelpOnHold && !helpShown && now >= helpDeadline) {
                 helpShown = true
                 onShowHelp()
                 break
@@ -528,7 +554,7 @@ private fun Modifier.repeatOnHold(
             val waitUntil = if (helpShown) {
                 Long.MAX_VALUE
             } else {
-                minOf(nextRepeatAt, startTime + helpDelayMillis)
+                minOf(nextRepeatAt, helpDeadline)
             }
             val waitMs = (waitUntil - now).coerceAtLeast(1)
             val released = withTimeoutOrNull(waitMs) {

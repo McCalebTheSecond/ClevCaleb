@@ -1,11 +1,11 @@
-## ClevCaleb v1.0.6
+## ClevCaleb v1.0.7
 
-Calculator UX improvements since v1.0.5.
+Calculator display and backspace fixes since v1.0.6.
 
 ### Calculator & UX
-- Long-press any keypad or scientific button (~0.8s) to open a short guide explaining what the key does, when to use it, and examples
-- Display auto-scrolls to keep the newest digits visible when typing long expressions; manual scroll is preserved when the cursor is not at the end
-- Backspace still repeats on hold; help appears if held longer without releasing
+- Backspace hold now only repeats delete — no long-press help dialog for the backspace key
+- Tapping or placing the cursor in the expression display no longer opens the system keyboard (the calculator keypad is your input)
+- Display cursor and text selection handles use the light Hermes theme color instead of the default dark caret
 
 ### Install
-Download **ClevCaleb-v1.0.6.apk** below and sideload on Android 8+.
+Download **ClevCaleb-v1.0.7.apk** below and sideload on Android 8+.
