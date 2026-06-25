@@ -2,6 +2,40 @@
 
 Guidance for cloud agents and automated workflows working in this repo.
 
+## Cursor Cloud development environment
+
+Standard **Gradle + Kotlin** Android project (`app/` module, AGP 8.5+, Kotlin 1.9+, `compileSdk`/`targetSdk` 34, `minSdk` 24).
+
+### Toolchain (pre-installed in the VM snapshot)
+
+- **JDK 21** at `/usr/lib/jvm/java-21-openjdk-amd64` (`JAVA_HOME`).
+- **Android SDK** at `~/android-sdk` (`ANDROID_HOME`/`ANDROID_SDK_ROOT`): `platform-tools`, `platforms;android-34`, `build-tools;34.0.0`.
+- These env vars are exported in `~/.bashrc`, so **interactive** shells have them automatically.
+
+Non-obvious gotchas:
+
+- The Gradle build locates the SDK via `local.properties` (`sdk.dir=$HOME/android-sdk`). This file is
+  git-ignored (machine-specific); the startup update script recreates it if missing. If a build fails with
+  "SDK location not found", recreate it: `echo "sdk.dir=$HOME/android-sdk" > local.properties`.
+- The update script runs in a **non-interactive** shell that does not source `~/.bashrc`, so when running
+  Gradle from such a context, pass `JAVA_HOME` explicitly (e.g. `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew ...`).
+  Interactive shells already have `JAVA_HOME` set.
+
+### Build / test / lint
+
+Run from the repo root (interactive shell has `JAVA_HOME`/`ANDROID_HOME` set):
+
+- Unit tests: `./gradlew :app:testDebugUnitTest`
+- Build debug APK: `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
+- Lint: `./gradlew lintDebug` (HTML report under `app/build/reports/`)
+
+### Running the app (important limitation)
+
+This is a **GUI Android app**, and the cloud VM has **no `/dev/kvm`**, so a hardware-accelerated emulator
+cannot run here. There is no automated GUI run in this environment. To validate behavior headlessly, rely on
+the **JVM unit tests** plus `assembleDebug`. To see the UI, install the APK on a real device/emulator outside
+this VM (`adb install app/build/outputs/apk/debug/app-debug.apk`).
+
 ## GitHub releases (required)
 
 When the user asks for a **release** or **APK**, they mean a **GitHub Release** in the repo’s **Releases** section — not just a commit, branch merge, or debug build artifact.
