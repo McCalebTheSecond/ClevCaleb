@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hermes Nous Blue Dark — nousTheme.darkColors from Hermes Desktop -->
+    <color name="hermes_background">#FF0D2F86</color>
+    <color name="hermes_foreground">#FFFFE6CB</color>
+    <color name="hermes_card">#FF12378F</color>
+    <color name="hermes_muted">#FF183F9A</color>
+    <color name="hermes_muted_fg">#FFB5C7F3</color>
+    <color name="hermes_primary">#FFFFE6CB</color>
+    <color name="hermes_primary_fg">#FF0D2F86</color>
+    <color name="hermes_secondary">#FF1B45A4</color>
+    <color name="hermes_accent">#FF1540B1</color>
+    <color name="hermes_border">#FF3158AD</color>
+    <color name="hermes_input">#FF0B2566</color>
+    <color name="hermes_nous_blue">#FF0053FD</color>
+    <color name="hermes_sidebar">#FF09286F</color>
+    <color name="hermes_destructive">#FFC0473A</color>
+</resources>
