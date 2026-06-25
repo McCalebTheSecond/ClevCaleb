@@ -44,9 +44,11 @@ fun UnitConverterScreen(onBack: () -> Unit) {
     }
     var value by remember { mutableStateOf("1") }
 
-    val result = value.toDoubleOrNull()?.let { v ->
-        UnitConverterLogic.convert(v, fromId, toId, category)?.let { Formatters.number(it, 6) }
-    } ?: "—"
+    val result = remember(value, fromId, toId, category) {
+        value.toDoubleOrNull()?.let { v ->
+            UnitConverterLogic.convert(v, fromId, toId, category)?.let { Formatters.number(it, 6) }
+        } ?: "—"
+    }
 
     CalculatorScaffold(title = "Unit Converter", onBack = onBack) {
         DropdownField("Category", UnitCategory.entries.map { it to it.label }, category) {

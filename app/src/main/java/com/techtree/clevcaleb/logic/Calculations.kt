@@ -3,11 +3,15 @@ package com.techtree.clevcaleb.logic
 import kotlin.math.pow
 
 object FinanceCalculations {
-    fun loanPayment(principal: Double, annualRatePercent: Double, years: Double): Triple<Double, Double, Double> {
+    fun loanPayment(principal: Double, annualRatePercent: Double, years: Double): Triple<Double, Double, Double>? {
         val months = years * 12
+        if (months <= 0.0) return null
         val r = annualRatePercent / 100 / 12
-        val monthly = if (r == 0.0) principal / months else {
-            principal * r * (1 + r).pow(months) / ((1 + r).pow(months) - 1)
+        val monthly = if (r == 0.0) {
+            principal / months
+        } else {
+            val factor = (1 + r).pow(months)
+            principal * r * factor / (factor - 1)
         }
         val total = monthly * months
         return Triple(monthly, total, total - principal)

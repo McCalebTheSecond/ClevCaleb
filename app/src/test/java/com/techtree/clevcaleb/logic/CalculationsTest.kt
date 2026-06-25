@@ -21,9 +21,16 @@ class CalculationsTest {
 
     @Test
     fun loanPayment() {
-        val (monthly, total, interest) = FinanceCalculations.loanPayment(10000.0, 5.0, 5.0)
+        val result = FinanceCalculations.loanPayment(10000.0, 5.0, 5.0)
+        assertNotNull(result)
+        val (monthly, total, interest) = result!!
         assertEquals(188.71, monthly, 0.1)
         assertEquals(total - 10000.0, interest, 0.1)
+    }
+
+    @Test
+    fun loanPaymentZeroTermReturnsNull() {
+        assertEquals(null, FinanceCalculations.loanPayment(10000.0, 5.0, 0.0))
     }
 
     @Test

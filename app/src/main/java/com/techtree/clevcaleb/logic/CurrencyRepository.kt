@@ -41,7 +41,19 @@ object CurrencyRepository {
         .readTimeout(5, TimeUnit.SECONDS)
         .build()
 
+    @Volatile
+    private var cachedRates: Map<String, Double>? = null
+
+    @Volatile
+    private var cacheFetchedAtMs: Long = 0
+
+    private const val CACHE_TTL_MS = 3_600_000L
+
     suspend fun fetchRates(): Map<String, Double> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        cachedRates?.let { cached ->
+            if (now - cacheFetchedAtMs < CACHE_TTL_MS) return@withContext cached
+        }
         try {
             val request = Request.Builder()
                 .url("https://api.frankfurter.app/latest?from=USD")
@@ -59,6 +71,8 @@ object CurrencyRepository {
                 fallbackRates.forEach { (code, rate) ->
                     if (code !in rates) rates[code] = rate
                 }
+                cachedRates = rates
+                cacheFetchedAtMs = now
                 rates
             }
         } catch (_: Exception) {
