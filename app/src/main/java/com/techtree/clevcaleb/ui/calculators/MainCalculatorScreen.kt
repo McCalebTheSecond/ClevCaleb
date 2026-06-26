@@ -43,7 +43,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -97,6 +100,7 @@ fun MainCalculatorScreen(
     var rawExpression by remember { mutableStateOf("") }
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val displayFocusRequester = remember { FocusRequester() }
     var scientificOpen by remember { mutableStateOf(false) }
     var angleMode by remember { mutableStateOf(MathEngine.AngleMode.DEG) }
     var showHistory by remember { mutableStateOf(false) }
@@ -165,8 +169,26 @@ fun MainCalculatorScreen(
 
     val displaySelectionColors = remember {
         TextSelectionColors(
-            handleColor = HermesColors.CursorLight,
-            backgroundColor = HermesColors.CursorLight.copy(alpha = 0.35f),
+            handleColor = Color.Transparent,
+            backgroundColor = Color.Transparent,
+        )
+    }
+
+    fun collapsedCursor(pos: Int, displayLength: Int): TextRange {
+        val p = pos.coerceIn(0, displayLength)
+        return TextRange(p, p)
+    }
+
+    fun updateDisplayCursor(newValue: TextFieldValue) {
+        val display = Formatters.formatExpression(rawExpression)
+        val cursorPos = if (newValue.selection.collapsed) {
+            newValue.selection.start
+        } else {
+            newValue.selection.end
+        }
+        textFieldValue = TextFieldValue(
+            text = display,
+            selection = collapsedCursor(cursorPos, display.length),
         )
     }
     fun haptic() {
@@ -179,25 +201,17 @@ fun MainCalculatorScreen(
     }
 
     fun insertToken(token: String) {
-        val selection = textFieldValue.selection
-        val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
-        val rawEnd = Formatters.displayOffsetToRaw(rawExpression, selection.max)
-        val newRaw = rawExpression.substring(0, rawStart) + token + rawExpression.substring(rawEnd)
+        val cursorDisplay = textFieldValue.selection.start
+        val rawStart = Formatters.displayOffsetToRaw(rawExpression, cursorDisplay)
+        val newRaw = rawExpression.substring(0, rawStart) + token + rawExpression.substring(rawStart)
         setExpression(newRaw, cursorRaw = rawStart + token.length)
     }
 
     fun backspace() {
         if (rawExpression.isEmpty()) return
-        val selection = textFieldValue.selection
-        if (!selection.collapsed) {
-            val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
-            val rawEnd = Formatters.displayOffsetToRaw(rawExpression, selection.max)
-            val newRaw = rawExpression.substring(0, rawStart) + rawExpression.substring(rawEnd)
-            setExpression(newRaw, cursorRaw = rawStart)
-            return
-        }
-        if (selection.start == 0) return
-        val rawPos = Formatters.displayOffsetToRaw(rawExpression, selection.start)
+        val cursorDisplay = textFieldValue.selection.start
+        if (cursorDisplay == 0) return
+        val rawPos = Formatters.displayOffsetToRaw(rawExpression, cursorDisplay)
         if (rawPos > 0) {
             val newRaw = rawExpression.removeRange(rawPos - 1, rawPos)
             setExpression(newRaw, cursorRaw = rawPos - 1)
@@ -224,8 +238,10 @@ fun MainCalculatorScreen(
                 }
             }
             "()" -> {
-                val selection = textFieldValue.selection
-                val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
+                val rawStart = Formatters.displayOffsetToRaw(
+                    rawExpression,
+                    textFieldValue.selection.start,
+                )
                 val token = ExpressionEdit.parenthesisToken(rawExpression, rawStart)
                 insertToken(token)
             }
@@ -277,19 +293,17 @@ fun MainCalculatorScreen(
                             value = textFieldValue,
                             onValueChange = { newValue ->
                                 val display = Formatters.formatExpression(rawExpression)
-                                textFieldValue = if (newValue.text == display) {
-                                    newValue
+                                if (newValue.text == display) {
+                                    updateDisplayCursor(newValue)
                                 } else {
-                                    TextFieldValue(
-                                        text = display,
-                                        selection = TextRange(
-                                            newValue.selection.start.coerceIn(0, display.length),
-                                            newValue.selection.end.coerceIn(0, display.length),
+                                    updateDisplayCursor(
+                                        newValue.copy(
+                                            text = display,
+                                            selection = newValue.selection,
                                         ),
                                     )
                                 }
                             },
-                            readOnly = true,
                             textStyle = CalcSizing.displayText.copy(
                                 color = HermesColors.Foreground,
                                 textAlign = TextAlign.End,
@@ -297,6 +311,7 @@ fun MainCalculatorScreen(
                             cursorBrush = SolidColor(HermesColors.CursorLight),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .focusRequester(displayFocusRequester)
                                 .disableSoftwareKeyboard()
                                 .bringIntoViewRequester(bringIntoViewRequester)
                                 .onFocusChanged { focusState ->
