@@ -1,12 +1,12 @@
-## ClevCaleb v1.0.9
+## ClevCaleb v1.0.10
 
-Calculator preview and cursor fixes since v1.0.8.
+Calculator display polish since v1.0.9.
 
 ### Calculator & UX
-- Live preview shows **Error** when the result is too large to display accurately (out of room), not a truncated wrong number
-- Tap anywhere in the expression to place the cursor; click and drag to move or select text (ClevCalc-style)
-- Keypad insert and backspace now edit at the cursor position instead of always at the end
-- Expression display scrolls to keep the cursor visible anywhere in a long expression
+- Cursor and selection handles use a light blue color for better visibility on the dark display
+- Android soft keyboard stays hidden on the main calculator display when placing or moving the cursor
+- Parentheses key toggles: closes `)` when an open `(` is waiting, instead of always opening another
+- Live preview **Error** only appears when the answer is too large to show — not for ordinary invalid expressions
 
 ### Install
-Download **ClevCaleb-v1.0.9.apk** below and sideload on Android 8+.
+Download **ClevCaleb-v1.0.10.apk** below and sideload on Android 8+.

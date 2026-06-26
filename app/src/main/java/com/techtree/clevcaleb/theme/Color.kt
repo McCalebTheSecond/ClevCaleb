@@ -18,6 +18,8 @@ object HermesColors {
     val Border = Color(0xFF3158AD)
     val Input = Color(0xFF0B2566)
     val NousBlue = Color(0xFF0053FD)
+    /** Light blue for calculator cursor and selection handles. */
+    val CursorLight = Color(0xFF8CB4FF)
     val Sidebar = Color(0xFF09286F)
     val Destructive = Color(0xFFC0473A)
 }

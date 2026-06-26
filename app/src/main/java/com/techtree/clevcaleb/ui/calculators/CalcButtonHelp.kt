@@ -86,7 +86,7 @@ private val helpByKey: Map<String, CalcButtonHelp> = mapOf(
     ),
     "()" to CalcButtonHelp(
         title = "Parentheses ( )",
-        description = "Inserts an opening parenthesis so you can group part of a calculation.",
+        description = "Adds ( or ) — opens a group, or closes one if there is an unmatched opening parenthesis.",
         whenToUse = "Use when order of operations matters — do one part first, then combine it with the rest.",
         examples = listOf(
             "(2+3)×4 = 20 — add first, then multiply",

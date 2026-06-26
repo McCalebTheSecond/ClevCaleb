@@ -55,10 +55,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.techtree.clevcaleb.logic.ExpressionEdit
 import com.techtree.clevcaleb.logic.Formatters
 import com.techtree.clevcaleb.logic.MathEngine
 import com.techtree.clevcaleb.theme.HermesColors
 import com.techtree.clevcaleb.ui.AppViewModel
+import com.techtree.clevcaleb.ui.disableSoftwareKeyboard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -103,6 +105,9 @@ fun MainCalculatorScreen(
     var preview by remember { mutableStateOf("") }
     var helpKey by remember { mutableStateOf<String?>(null) }
 
+    val view = LocalView.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     fun setExpression(
         text: String,
         cursorRaw: Int? = null,
@@ -126,11 +131,7 @@ fun MainCalculatorScreen(
         }
         delay(120)
         val result = MathEngine.evaluate(rawExpression, angleMode)
-        preview = when {
-            result != null -> Formatters.previewResult(result, decimalPlaces)
-            MathEngine.isPreviewable(rawExpression) -> Formatters.PREVIEW_ERROR
-            else -> ""
-        }
+        preview = result?.let { Formatters.previewResult(it, decimalPlaces) } ?: ""
     }
 
     LaunchedEffect(savedExpr, keepRecord) {
@@ -153,6 +154,7 @@ fun MainCalculatorScreen(
 
     LaunchedEffect(textFieldValue.text, textFieldValue.selection) {
         bringIntoViewRequester.bringIntoView()
+        keyboardController?.hide()
     }
 
     DisposableEffect(keepRecord) {
@@ -161,12 +163,10 @@ fun MainCalculatorScreen(
         }
     }
 
-    val view = LocalView.current
-    val keyboardController = LocalSoftwareKeyboardController.current
     val displaySelectionColors = remember {
         TextSelectionColors(
-            handleColor = HermesColors.Primary,
-            backgroundColor = HermesColors.Primary.copy(alpha = 0.35f),
+            handleColor = HermesColors.CursorLight,
+            backgroundColor = HermesColors.CursorLight.copy(alpha = 0.35f),
         )
     }
     fun haptic() {
@@ -223,7 +223,12 @@ fun MainCalculatorScreen(
                     setExpression(Formatters.stripGrouping(formatted), immediate = true)
                 }
             }
-            "()" -> append("(")
+            "()" -> {
+                val selection = textFieldValue.selection
+                val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
+                val token = ExpressionEdit.parenthesisToken(rawExpression, rawStart)
+                insertToken(token)
+            }
             "÷" -> append("÷")
             "×" -> append("×")
             "−" -> append("−")
@@ -284,13 +289,15 @@ fun MainCalculatorScreen(
                                     )
                                 }
                             },
+                            readOnly = true,
                             textStyle = CalcSizing.displayText.copy(
                                 color = HermesColors.Foreground,
                                 textAlign = TextAlign.End,
                             ),
-                            cursorBrush = SolidColor(HermesColors.Primary),
+                            cursorBrush = SolidColor(HermesColors.CursorLight),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .disableSoftwareKeyboard()
                                 .bringIntoViewRequester(bringIntoViewRequester)
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {

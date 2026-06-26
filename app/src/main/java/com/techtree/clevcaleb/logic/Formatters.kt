@@ -93,6 +93,7 @@ object Formatters {
 
     /** Live-preview text for a computed result, or [PREVIEW_ERROR] when it cannot be shown. */
     fun previewResult(value: Double, maxDecimals: Int = 10): String {
+        if (!value.isFinite()) return ""
         if (!fitsDisplay(value, maxDecimals)) return PREVIEW_ERROR
         return calculator(value, maxDecimals)
     }

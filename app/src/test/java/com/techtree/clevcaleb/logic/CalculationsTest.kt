@@ -213,4 +213,18 @@ class CalculationsTest {
         assertEquals(false, Formatters.fitsDisplay(Double.POSITIVE_INFINITY))
         assertEquals(false, Formatters.fitsDisplay(Double.NaN))
     }
+
+    @Test
+    fun previewResultBlankForNonFinite() {
+        assertEquals("", Formatters.previewResult(Double.POSITIVE_INFINITY))
+        assertEquals("", Formatters.previewResult(Double.NaN))
+    }
+
+    @Test
+    fun parenthesisTokenTogglesOpenAndClose() {
+        assertEquals("(", ExpressionEdit.parenthesisToken("", 0))
+        assertEquals(")", ExpressionEdit.parenthesisToken("(3000(", 6))
+        assertEquals("(", ExpressionEdit.parenthesisToken("(3+5)", 5))
+        assertEquals(")", ExpressionEdit.parenthesisToken("((1+2)", 7))
+    }
 }
