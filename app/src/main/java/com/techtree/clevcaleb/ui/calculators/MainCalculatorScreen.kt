@@ -37,6 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -109,6 +110,8 @@ fun MainCalculatorScreen(
     var preview by remember { mutableStateOf("") }
     var helpKey by remember { mutableStateOf<String?>(null) }
 
+    val displayExpression by remember { derivedStateOf { Formatters.formatExpression(rawExpression) } }
+
     val view = LocalView.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -119,7 +122,7 @@ fun MainCalculatorScreen(
     ) {
         rawExpression = Formatters.stripGrouping(text)
         val display = Formatters.formatExpression(rawExpression)
-        val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(rawExpression, it) }
+        val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(rawExpression, display, it) }
             ?: display.length
         textFieldValue = TextFieldValue(
             text = display,
@@ -129,7 +132,7 @@ fun MainCalculatorScreen(
     }
 
     LaunchedEffect(rawExpression, angleMode, decimalPlaces) {
-        if (rawExpression.isEmpty()) {
+        if (rawExpression.isEmpty() || !MathEngine.isPreviewable(rawExpression)) {
             preview = ""
             return@LaunchedEffect
         }
@@ -146,12 +149,11 @@ fun MainCalculatorScreen(
 
     LaunchedEffect(decimalPlaces) {
         if (rawExpression.isEmpty()) return@LaunchedEffect
-        val display = Formatters.formatExpression(rawExpression)
         textFieldValue = textFieldValue.copy(
-            text = display,
+            text = displayExpression,
             selection = TextRange(
-                textFieldValue.selection.start.coerceIn(0, display.length),
-                textFieldValue.selection.end.coerceIn(0, display.length),
+                textFieldValue.selection.start.coerceIn(0, displayExpression.length),
+                textFieldValue.selection.end.coerceIn(0, displayExpression.length),
             ),
         )
     }
@@ -180,15 +182,14 @@ fun MainCalculatorScreen(
     }
 
     fun updateDisplayCursor(newValue: TextFieldValue) {
-        val display = Formatters.formatExpression(rawExpression)
         val cursorPos = if (newValue.selection.collapsed) {
             newValue.selection.start
         } else {
             newValue.selection.end
         }
         textFieldValue = TextFieldValue(
-            text = display,
-            selection = collapsedCursor(cursorPos, display.length),
+            text = displayExpression,
+            selection = collapsedCursor(cursorPos, displayExpression.length),
         )
     }
     fun haptic() {
@@ -202,7 +203,7 @@ fun MainCalculatorScreen(
 
     fun insertToken(token: String) {
         val cursorDisplay = textFieldValue.selection.start
-        val rawStart = Formatters.displayOffsetToRaw(rawExpression, cursorDisplay)
+        val rawStart = Formatters.displayOffsetToRaw(rawExpression, displayExpression, cursorDisplay)
         val newRaw = rawExpression.substring(0, rawStart) + token + rawExpression.substring(rawStart)
         setExpression(newRaw, cursorRaw = rawStart + token.length)
     }
@@ -211,7 +212,7 @@ fun MainCalculatorScreen(
         if (rawExpression.isEmpty()) return
         val cursorDisplay = textFieldValue.selection.start
         if (cursorDisplay == 0) return
-        val rawPos = Formatters.displayOffsetToRaw(rawExpression, cursorDisplay)
+        val rawPos = Formatters.displayOffsetToRaw(rawExpression, displayExpression, cursorDisplay)
         if (rawPos > 0) {
             val newRaw = rawExpression.removeRange(rawPos - 1, rawPos)
             setExpression(newRaw, cursorRaw = rawPos - 1)
@@ -240,6 +241,7 @@ fun MainCalculatorScreen(
             "()" -> {
                 val rawStart = Formatters.displayOffsetToRaw(
                     rawExpression,
+                    displayExpression,
                     textFieldValue.selection.start,
                 )
                 val token = ExpressionEdit.parenthesisToken(rawExpression, rawStart)
@@ -292,13 +294,12 @@ fun MainCalculatorScreen(
                         BasicTextField(
                             value = textFieldValue,
                             onValueChange = { newValue ->
-                                val display = Formatters.formatExpression(rawExpression)
-                                if (newValue.text == display) {
+                                if (newValue.text == displayExpression) {
                                     updateDisplayCursor(newValue)
                                 } else {
                                     updateDisplayCursor(
                                         newValue.copy(
-                                            text = display,
+                                            text = displayExpression,
                                             selection = newValue.selection,
                                         ),
                                     )

@@ -34,6 +34,7 @@ import java.util.Locale
 fun UnitConverterScreen(onBack: () -> Unit) {
     var category by remember { mutableStateOf(UnitCategory.LENGTH) }
     val units = UnitConverterLogic.categories[category] ?: emptyList()
+    val unitOptions = remember(category) { units.map { it.id to it.label } }
     var fromId by remember(category) {
         val (from, _) = UnitConverterLogic.defaultUsUnits(category)
         mutableStateOf(from)
@@ -58,8 +59,8 @@ fun UnitConverterScreen(onBack: () -> Unit) {
             toId = to
         }
         NumberField("Value", value) { value = it }
-        DropdownField("From", units.map { it.id to it.label }, fromId) { fromId = it }
-        DropdownField("To", units.map { it.id to it.label }, toId) { toId = it }
+        DropdownField("From", unitOptions, fromId) { fromId = it }
+        DropdownField("To", unitOptions, toId) { toId = it }
         ResultCard("Result", result)
     }
 }
@@ -86,8 +87,8 @@ fun CurrencyConverterScreen(onBack: () -> Unit) {
     CalculatorScaffold(title = "Currency Converter", onBack = onBack) {
         if (rates == null) CircularProgressIndicator(color = HermesColors.Primary)
         NumberField("Amount", amount) { amount = it }
-        DropdownField("From", CurrencyRepository.currencies.map { it.code to "${it.code} — ${it.name}" }, from) { from = it }
-        DropdownField("To", CurrencyRepository.currencies.map { it.code to "${it.code} — ${it.name}" }, to) { to = it }
+        DropdownField("From", CurrencyRepository.dropdownOptions, from) { from = it }
+        DropdownField("To", CurrencyRepository.dropdownOptions, to) { to = it }
         ResultCard("Converted amount", result)
     }
 }
@@ -97,6 +98,8 @@ fun WorldTimeScreen(onBack: () -> Unit) {
     var fromTz by remember { mutableStateOf("America/Chicago") }
     var toTz by remember { mutableStateOf("America/New_York") }
     var now by remember { mutableStateOf(ZonedDateTime.now()) }
+    val fromZone = remember(fromTz) { ZoneId.of(fromTz) }
+    val toZone = remember(toTz) { ZoneId.of(toTz) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -112,17 +115,17 @@ fun WorldTimeScreen(onBack: () -> Unit) {
     CalculatorScaffold(title = "US Time", onBack = onBack) {
         DropdownField(
             "From city",
-            WorldTimeData.cities.map { it.timezone to it.label },
+            WorldTimeData.cityDropdownOptions,
             fromTz,
         ) { fromTz = it }
-        ResultCard("Time", now.withZoneSameInstant(ZoneId.of(fromTz)).format(formatter))
+        ResultCard("Time", now.withZoneSameInstant(fromZone).format(formatter))
 
         DropdownField(
             "To city",
-            WorldTimeData.cities.map { it.timezone to it.label },
+            WorldTimeData.cityDropdownOptions,
             toTz,
         ) { toTz = it }
-        ResultCard("Time", now.withZoneSameInstant(ZoneId.of(toTz)).format(formatter))
+        ResultCard("Time", now.withZoneSameInstant(toZone).format(formatter))
     }
 }
 

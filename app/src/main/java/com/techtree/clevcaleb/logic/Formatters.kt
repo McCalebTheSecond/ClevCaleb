@@ -38,8 +38,11 @@ object Formatters {
     }
 
     /** Maps a cursor index in [formatExpression] output back to the ungrouped [raw] index. */
-    fun displayOffsetToRaw(raw: String, displayOffset: Int): Int {
-        val display = formatExpression(raw)
+    fun displayOffsetToRaw(raw: String, displayOffset: Int): Int =
+        displayOffsetToRaw(raw, formatExpression(raw), displayOffset)
+
+    /** Like [displayOffsetToRaw] but reuses an already-formatted [display] string. */
+    fun displayOffsetToRaw(raw: String, display: String, displayOffset: Int): Int {
         if (displayOffset <= 0) return 0
         if (displayOffset >= display.length) return raw.length
 
@@ -59,8 +62,11 @@ object Formatters {
     }
 
     /** Maps an ungrouped [raw] index to a cursor index in [formatExpression] output. */
-    fun rawOffsetToDisplay(raw: String, rawOffset: Int): Int {
-        val display = formatExpression(raw)
+    fun rawOffsetToDisplay(raw: String, rawOffset: Int): Int =
+        rawOffsetToDisplay(raw, formatExpression(raw), rawOffset)
+
+    /** Like [rawOffsetToDisplay] but reuses an already-formatted [display] string. */
+    fun rawOffsetToDisplay(raw: String, display: String, rawOffset: Int): Int {
         if (rawOffset <= 0) return 0
         if (rawOffset >= raw.length) return display.length
 

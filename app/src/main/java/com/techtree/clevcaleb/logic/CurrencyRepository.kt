@@ -24,6 +24,10 @@ object CurrencyRepository {
         Currency("CHF", "Swiss Franc", "CHF"),
     )
 
+    val dropdownOptions: List<Pair<String, String>> by lazy {
+        currencies.map { it.code to "${it.code} — ${it.name}" }
+    }
+
     private val fallbackRates = mapOf(
         "USD" to 1.0,
         "CAD" to 1.36,

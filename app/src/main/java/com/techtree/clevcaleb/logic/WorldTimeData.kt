@@ -6,6 +6,10 @@ data class UsCity(val city: String, val state: String, val timezone: String) {
 
 /** US time zones and major cities (English, US-only build). */
 object WorldTimeData {
+    val cityDropdownOptions: List<Pair<String, String>> by lazy {
+        cities.map { it.timezone to it.label }
+    }
+
     val cities = listOf(
         UsCity("New York", "NY", "America/New_York"),
         UsCity("Washington", "DC", "America/New_York"),
