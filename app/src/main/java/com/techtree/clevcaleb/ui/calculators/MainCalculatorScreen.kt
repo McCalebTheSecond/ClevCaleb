@@ -103,20 +103,18 @@ fun MainCalculatorScreen(
     var preview by remember { mutableStateOf("") }
     var helpKey by remember { mutableStateOf<String?>(null) }
 
-    fun setExpression(text: String, moveCursorToEnd: Boolean = true, immediate: Boolean = false) {
+    fun setExpression(
+        text: String,
+        cursorRaw: Int? = null,
+        immediate: Boolean = false,
+    ) {
         rawExpression = Formatters.stripGrouping(text)
         val display = Formatters.formatExpression(rawExpression)
+        val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(rawExpression, it) }
+            ?: display.length
         textFieldValue = TextFieldValue(
             text = display,
-            selection = if (moveCursorToEnd) {
-                TextRange(display.length)
-            } else {
-                val selection = textFieldValue.selection
-                TextRange(
-                    selection.start.coerceIn(0, display.length),
-                    selection.end.coerceIn(0, display.length),
-                )
-            },
+            selection = TextRange(cursor.coerceIn(0, display.length)),
         )
         if (keepRecord) viewModel.setLastExpression(rawExpression, immediate = immediate)
     }
@@ -129,8 +127,8 @@ fun MainCalculatorScreen(
         delay(120)
         val result = MathEngine.evaluate(rawExpression, angleMode)
         preview = when {
-            result != null -> Formatters.calculator(result, decimalPlaces)
-            MathEngine.isPreviewable(rawExpression) -> "Error"
+            result != null -> Formatters.previewResult(result, decimalPlaces)
+            MathEngine.isPreviewable(rawExpression) -> Formatters.PREVIEW_ERROR
             else -> ""
         }
     }
@@ -154,9 +152,7 @@ fun MainCalculatorScreen(
     }
 
     LaunchedEffect(textFieldValue.text, textFieldValue.selection) {
-        if (textFieldValue.selection.end == textFieldValue.text.length) {
-            bringIntoViewRequester.bringIntoView()
-        }
+        bringIntoViewRequester.bringIntoView()
     }
 
     DisposableEffect(keepRecord) {
@@ -182,14 +178,34 @@ fun MainCalculatorScreen(
         helpKey = key
     }
 
-    fun append(token: String) {
-        setExpression(rawExpression + token)
+    fun insertToken(token: String) {
+        val selection = textFieldValue.selection
+        val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
+        val rawEnd = Formatters.displayOffsetToRaw(rawExpression, selection.max)
+        val newRaw = rawExpression.substring(0, rawStart) + token + rawExpression.substring(rawEnd)
+        setExpression(newRaw, cursorRaw = rawStart + token.length)
     }
 
     fun backspace() {
-        if (rawExpression.isNotEmpty()) {
-            setExpression(rawExpression.dropLast(1))
+        if (rawExpression.isEmpty()) return
+        val selection = textFieldValue.selection
+        if (!selection.collapsed) {
+            val rawStart = Formatters.displayOffsetToRaw(rawExpression, selection.min)
+            val rawEnd = Formatters.displayOffsetToRaw(rawExpression, selection.max)
+            val newRaw = rawExpression.substring(0, rawStart) + rawExpression.substring(rawEnd)
+            setExpression(newRaw, cursorRaw = rawStart)
+            return
         }
+        if (selection.start == 0) return
+        val rawPos = Formatters.displayOffsetToRaw(rawExpression, selection.start)
+        if (rawPos > 0) {
+            val newRaw = rawExpression.removeRange(rawPos - 1, rawPos)
+            setExpression(newRaw, cursorRaw = rawPos - 1)
+        }
+    }
+
+    fun append(token: String) {
+        insertToken(token)
     }
 
     fun handleKey(key: String) {
@@ -199,7 +215,7 @@ fun MainCalculatorScreen(
             "⌫" -> backspace()
             "=" -> {
                 val result = MathEngine.evaluate(rawExpression, angleMode)
-                if (result != null) {
+                if (result != null && Formatters.fitsDisplay(result, decimalPlaces)) {
                     val formatted = Formatters.calculator(result, decimalPlaces)
                     val displayExpr = Formatters.formatExpression(rawExpression)
                     val entry = "$displayExpr = $formatted"
@@ -245,7 +261,7 @@ fun MainCalculatorScreen(
                     Text(
                         text = preview.ifEmpty { " " },
                         style = CalcSizing.previewText,
-                        color = if (preview == "Error") {
+                        color = if (preview == Formatters.PREVIEW_ERROR) {
                             HermesColors.Destructive
                         } else {
                             HermesColors.MutedForeground
@@ -259,7 +275,8 @@ fun MainCalculatorScreen(
                                 textFieldValue = if (newValue.text == display) {
                                     newValue
                                 } else {
-                                    textFieldValue.copy(
+                                    TextFieldValue(
+                                        text = display,
                                         selection = TextRange(
                                             newValue.selection.start.coerceIn(0, display.length),
                                             newValue.selection.end.coerceIn(0, display.length),
@@ -267,7 +284,6 @@ fun MainCalculatorScreen(
                                     )
                                 }
                             },
-                            readOnly = true,
                             textStyle = CalcSizing.displayText.copy(
                                 color = HermesColors.Foreground,
                                 textAlign = TextAlign.End,

@@ -1,11 +1,12 @@
-## ClevCaleb v1.0.8
+## ClevCaleb v1.0.9
 
-Number formatting and live-preview fixes since v1.0.7.
+Calculator preview and cursor fixes since v1.0.8.
 
 ### Calculator & UX
-- Expression display, live preview, and results now use thousands separators (e.g. `1,000+2,000` → `3,000`)
-- Live preview shows **Error** when an expression is complete enough to evaluate but cannot be calculated, instead of going blank
-- Long expressions and comma-formatted numbers evaluate correctly (grouping separators are stripped before math)
+- Live preview shows **Error** when the result is too large to display accurately (out of room), not a truncated wrong number
+- Tap anywhere in the expression to place the cursor; click and drag to move or select text (ClevCalc-style)
+- Keypad insert and backspace now edit at the cursor position instead of always at the end
+- Expression display scrolls to keep the cursor visible anywhere in a long expression
 
 ### Install
-Download **ClevCaleb-v1.0.8.apk** below and sideload on Android 8+.
+Download **ClevCaleb-v1.0.9.apk** below and sideload on Android 8+.

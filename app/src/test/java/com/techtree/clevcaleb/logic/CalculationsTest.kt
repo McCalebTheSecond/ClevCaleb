@@ -180,4 +180,37 @@ class CalculationsTest {
         assertEquals(true, MathEngine.isPreviewable("1+2+"))
         assertEquals(true, MathEngine.isPreviewable("1,000+2,000"))
     }
+
+    @Test
+    fun displayOffsetMappingRoundTripsWithGrouping() {
+        val raw = "1000+2000"
+        val display = Formatters.formatExpression(raw)
+        assertEquals("1,000+2,000", display)
+        assertEquals(0, Formatters.displayOffsetToRaw(raw, 0))
+        assertEquals(4, Formatters.displayOffsetToRaw(raw, 5))
+        assertEquals(5, Formatters.displayOffsetToRaw(raw, 6))
+        assertEquals(raw.length, Formatters.displayOffsetToRaw(raw, display.length))
+        assertEquals(5, Formatters.rawOffsetToDisplay(raw, 4))
+        assertEquals(6, Formatters.rawOffsetToDisplay(raw, 5))
+    }
+
+    @Test
+    fun previewResultErrorsWhenOutOfRoom() {
+        val expr = (1..25).joinToString("×")
+        val result = MathEngine.evaluate(expr)
+        assertNotNull(result)
+        assertEquals(Formatters.PREVIEW_ERROR, Formatters.previewResult(result!!, 10))
+    }
+
+    @Test
+    fun previewResultShowsNormalValues() {
+        assertEquals("3,000", Formatters.previewResult(3000.0, 10))
+        assertEquals("3", Formatters.previewResult(3.0, 10))
+    }
+
+    @Test
+    fun fitsDisplayRejectsNonFiniteValues() {
+        assertEquals(false, Formatters.fitsDisplay(Double.POSITIVE_INFINITY))
+        assertEquals(false, Formatters.fitsDisplay(Double.NaN))
+    }
 }
