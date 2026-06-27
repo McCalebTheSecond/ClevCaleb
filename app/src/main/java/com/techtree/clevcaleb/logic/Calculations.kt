@@ -43,7 +43,8 @@ object FinanceCalculations {
         tipPercent: Double,
         people: Int,
         excludeTax: Boolean,
-    ): Triple<Double, Double, Double> {
+    ): Triple<Double, Double, Double>? {
+        if (people < 1) return null
         val base = if (excludeTax) bill - tax else bill
         val tip = base * tipPercent / 100
         val total = bill + tip
@@ -52,7 +53,8 @@ object FinanceCalculations {
 }
 
 object HealthCalculations {
-    fun bmi(weightKg: Double, heightCm: Double): Double {
+    fun bmi(weightKg: Double, heightCm: Double): Double? {
+        if (heightCm <= 0.0) return null
         val m = heightCm / 100
         return weightKg / (m * m)
     }

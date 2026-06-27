@@ -221,6 +221,22 @@ class CalculationsTest {
     }
 
     @Test
+    fun tipZeroPeopleReturnsNull() {
+        assertEquals(null, FinanceCalculations.tip(85.0, 6.80, 18.0, 0, true))
+    }
+
+    @Test
+    fun bmiZeroHeightReturnsNull() {
+        assertEquals(null, HealthCalculations.bmi(70.0, 0.0))
+    }
+
+    @Test
+    fun currencySymbolLookup() {
+        assertEquals("$", CurrencyRepository.symbolFor("USD"))
+        assertEquals("", CurrencyRepository.symbolFor("ZZZ"))
+    }
+
+    @Test
     fun parenthesisTokenTogglesOpenAndClose() {
         assertEquals("(", ExpressionEdit.parenthesisToken("", 0))
         assertEquals(")", ExpressionEdit.parenthesisToken("(3000(", 6))

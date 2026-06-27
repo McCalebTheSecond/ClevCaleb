@@ -1,5 +1,6 @@
 package com.techtree.clevcaleb.logic
 
+import net.objecthunter.exp4j.Expression
 import net.objecthunter.exp4j.ExpressionBuilder
 import kotlin.math.PI
 
@@ -27,6 +28,22 @@ object MathEngine {
     }
     private val tanDegFn = object : net.objecthunter.exp4j.function.Function("tanDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.tan(Math.toRadians(args[0]))
+    }
+
+    private const val COMPILED_CACHE_MAX = 32
+
+    /** LRU cache of parsed expressions — live preview re-evaluates the same input often. */
+    private val compiledCache = object : LinkedHashMap<String, Expression>(COMPILED_CACHE_MAX + 1, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Expression>) =
+            size > COMPILED_CACHE_MAX
+    }
+
+    private fun compiledExpression(prepared: String): Expression = synchronized(compiledCache) {
+        compiledCache.getOrPut(prepared) {
+            ExpressionBuilder(prepared)
+                .functions(sinDegFn, cosDegFn, tanDegFn)
+                .build()
+        }
     }
 
     internal fun stripTrailingOperators(expression: String): String {
@@ -96,10 +113,7 @@ object MathEngine {
         }
 
         return try {
-            ExpressionBuilder(prepared)
-                .functions(sinDegFn, cosDegFn, tanDegFn)
-                .build()
-                .evaluate()
+            compiledExpression(prepared).evaluate()
         } catch (_: Exception) {
             null
         }

@@ -28,6 +28,12 @@ object CurrencyRepository {
         currencies.map { it.code to "${it.code} — ${it.name}" }
     }
 
+    val symbolsByCode: Map<String, String> by lazy {
+        currencies.associate { it.code to it.symbol }
+    }
+
+    fun symbolFor(code: String): String = symbolsByCode[code] ?: ""
+
     private val fallbackRates = mapOf(
         "USD" to 1.0,
         "CAD" to 1.36,

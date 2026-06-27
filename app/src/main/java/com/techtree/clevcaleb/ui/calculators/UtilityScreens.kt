@@ -39,12 +39,12 @@ fun DateScreen(onBack: () -> Unit) {
                         "Between ${d1.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))} and ${d2.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
                 }
                 "add" -> {
-                    val n = days.toLong()
+                    val n = days.toLongOrNull() ?: throw IllegalArgumentException("invalid days")
                     val r = d1.plusDays(n)
                     r.format(fmt) to "$n days after ${d1.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
                 }
                 else -> {
-                    val n = days.toLong()
+                    val n = days.toLongOrNull() ?: throw IllegalArgumentException("invalid days")
                     val r = d1.minusDays(n)
                     r.format(fmt) to "$n days before ${d1.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
                 }
@@ -82,7 +82,7 @@ fun HealthScreen(onBack: () -> Unit) {
         if (h <= 0) return@remember null
         val weightKg = w * 0.453592
         val heightCm = h * 2.54
-        val bmi = HealthCalculations.bmi(weightKg, heightCm)
+        val bmi = HealthCalculations.bmi(weightKg, heightCm) ?: return@remember null
         Triple(
             Formatters.number(bmi, 1),
             HealthCalculations.bmiCategory(bmi),

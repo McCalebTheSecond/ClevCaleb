@@ -80,7 +80,7 @@ fun CurrencyConverterScreen(onBack: () -> Unit) {
         val n = amount.toDoubleOrNull() ?: return@remember "—"
         val r = rates ?: return@remember "Loading…"
         val converted = CurrencyRepository.convert(n, from, to, r)
-        val symbol = CurrencyRepository.currencies.find { it.code == to }?.symbol ?: ""
+        val symbol = CurrencyRepository.symbolFor(to)
         "$symbol${Formatters.number(converted)}"
     }
 
