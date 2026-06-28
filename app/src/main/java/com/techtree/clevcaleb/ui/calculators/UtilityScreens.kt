@@ -160,7 +160,7 @@ fun FuelEfficiencyScreen(onBack: () -> Unit) {
     }
 }
 
-data class GpaCourse(var credits: String, var grade: String)
+data class GpaCourse(val credits: String, val grade: String)
 
 @Composable
 fun GpaScreen(onBack: () -> Unit) {
@@ -174,7 +174,8 @@ fun GpaScreen(onBack: () -> Unit) {
         "F" to 0.0,
     )
 
-    val gpa = remember(courses.toList()) {
+    val courseKey = courses.joinToString("|") { "${it.credits}:${it.grade}" }
+    val gpa = remember(courseKey) {
         var totalPoints = 0.0
         var totalCredits = 0.0
         courses.forEach { course ->
@@ -191,8 +192,10 @@ fun GpaScreen(onBack: () -> Unit) {
     CalculatorScaffold(title = "GPA", onBack = onBack) {
         courses.forEachIndexed { index, course ->
             Text("Course ${index + 1}", modifier = Modifier.padding(bottom = 4.dp))
-            NumberField("Credits", course.credits) { course.credits = it }
-            DropdownField("Grade", grades.map { it to it }, course.grade) { course.grade = it }
+            NumberField("Credits", course.credits) { courses[index] = course.copy(credits = it) }
+            DropdownField("Grade", grades.map { it to it }, course.grade) {
+                courses[index] = course.copy(grade = it)
+            }
         }
         androidx.compose.material3.TextButton(onClick = { courses.add(GpaCourse("3", "A")) }) {
             Text("Add course")
@@ -210,7 +213,7 @@ fun OvulationScreen(onBack: () -> Unit) {
     val results = remember(lastPeriod, cycle) {
         runCatching {
             val start = LocalDate.parse(lastPeriod)
-            val len = cycle.toInt()
+            val len = cycle.toIntOrNull() ?: throw IllegalArgumentException("invalid cycle")
             require(len in 21..45)
             val ovulation = start.plusDays((len - 14).toLong())
             val fertileStart = ovulation.minusDays(5)

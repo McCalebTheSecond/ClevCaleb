@@ -59,16 +59,20 @@ fun PercentageScreen(onBack: () -> Unit) {
 fun DiscountScreen(onBack: () -> Unit) {
     var price by remember { mutableStateOf("99.99") }
     var discount by remember { mutableStateOf("20") }
-    val p = price.toDoubleOrNull()
-    val d = discount.toDoubleOrNull()
+
+    val result = remember(price, discount) {
+        val p = price.toDoubleOrNull() ?: return@remember null
+        val d = discount.toDoubleOrNull() ?: return@remember null
+        val saved = p * d / 100
+        Formatters.currency(p - saved) to Formatters.currency(saved)
+    }
 
     CalculatorScaffold(title = "Discount", onBack = onBack) {
         NumberField("Original price", price) { price = it }
         NumberField("Discount (%)", discount) { discount = it }
-        if (p != null && d != null) {
-            val saved = p * d / 100
-            ResultCard("Discounted price", Formatters.currency(p - saved))
-            ResultCard("You save", Formatters.currency(saved))
+        result?.let { (discounted, saved) ->
+            ResultCard("Discounted price", discounted)
+            ResultCard("You save", saved)
         }
     }
 }
@@ -140,16 +144,20 @@ fun TipScreen(onBack: () -> Unit) {
 fun SalesTaxScreen(onBack: () -> Unit) {
     var price by remember { mutableStateOf("49.99") }
     var rate by remember { mutableStateOf("8.25") }
-    val p = price.toDoubleOrNull()
-    val r = rate.toDoubleOrNull()
+
+    val result = remember(price, rate) {
+        val p = price.toDoubleOrNull() ?: return@remember null
+        val r = rate.toDoubleOrNull() ?: return@remember null
+        val tax = p * r / 100
+        Formatters.currency(tax) to Formatters.currency(p + tax)
+    }
 
     CalculatorScaffold(title = "Sales Tax", onBack = onBack) {
         NumberField("Price before tax", price) { price = it }
         NumberField("Tax rate (%)", rate) { rate = it }
-        if (p != null && r != null) {
-            val tax = p * r / 100
-            ResultCard("Tax amount", Formatters.currency(tax))
-            ResultCard("Total price", Formatters.currency(p + tax))
+        result?.let { (tax, total) ->
+            ResultCard("Tax amount", tax)
+            ResultCard("Total price", total)
         }
     }
 }

@@ -27,7 +27,9 @@ fun <T> DropdownField(
     onSelect: (T) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = options.find { it.first == selected }?.second ?: ""
+    val selectedLabel = remember(selected, options) {
+        options.find { it.first == selected }?.second ?: ""
+    }
 
     ExposedDropdownMenuBox(
         expanded = expanded,

@@ -56,12 +56,20 @@ object MathEngine {
 
     internal fun stripGrouping(expression: String): String = expression.replace(",", "")
 
-    fun isPreviewable(expression: String): Boolean {
-        val cleaned = stripGrouping(expression)
+    /** Normalize display operators and strip thousands separators. */
+    internal fun normalizeOperators(expression: String, includeConstants: Boolean = false): String {
+        var result = stripGrouping(expression)
             .replace("×", "*")
             .replace("÷", "/")
             .replace("−", "-")
-            .trim()
+        if (includeConstants) {
+            result = result.replace("π", PI.toString())
+        }
+        return result.trim()
+    }
+
+    fun isPreviewable(expression: String): Boolean {
+        val cleaned = normalizeOperators(expression)
         if (cleaned.isEmpty()) return false
         return stripTrailingOperators(cleaned).isNotEmpty()
     }
@@ -90,12 +98,7 @@ object MathEngine {
     }
 
     fun evaluate(expression: String, angleMode: AngleMode = AngleMode.DEG): Double? {
-        val cleaned = stripGrouping(expression)
-            .replace("×", "*")
-            .replace("÷", "/")
-            .replace("−", "-")
-            .replace("π", PI.toString())
-            .trim()
+        val cleaned = normalizeOperators(expression, includeConstants = true)
         if (cleaned.isEmpty()) return null
 
         val stripped = stripTrailingOperators(cleaned)

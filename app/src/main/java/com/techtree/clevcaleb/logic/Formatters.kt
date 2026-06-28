@@ -100,8 +100,13 @@ object Formatters {
     /** Live-preview text for a computed result, or [PREVIEW_ERROR] when it cannot be shown. */
     fun previewResult(value: Double, maxDecimals: Int = 10): String {
         if (!value.isFinite()) return ""
-        if (!fitsDisplay(value, maxDecimals)) return PREVIEW_ERROR
-        return calculator(value, maxDecimals)
+        val formatted = calculator(value, maxDecimals)
+        if (formatted == PREVIEW_ERROR) return PREVIEW_ERROR
+        if (formatted.count { it.isDigit() } > MAX_DISPLAY_DIGITS) return PREVIEW_ERROR
+        if (abs(value - value.roundToLong().toDouble()) < 1e-9) {
+            if (abs(value.roundToLong()) > MAX_EXACT_INTEGER) return PREVIEW_ERROR
+        }
+        return formatted
     }
 
     private fun formatGroupedLiteral(raw: String): String {
