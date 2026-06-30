@@ -248,7 +248,7 @@ class CalculationsTest {
     fun mathEnginePiAfterParenthesis() {
         val result = MathEngine.evaluate("(1+1)π")
         assertNotNull(result)
-        assertEquals(4 * kotlin.math.PI, result!!, 0.0001)
+        assertEquals(2 * kotlin.math.PI, result!!, 0.0001)
     }
 
     @Test
