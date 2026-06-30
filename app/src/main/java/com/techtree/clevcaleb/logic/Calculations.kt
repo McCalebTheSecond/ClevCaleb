@@ -46,6 +46,7 @@ object FinanceCalculations {
     ): Triple<Double, Double, Double>? {
         if (people < 1) return null
         val base = if (excludeTax) bill - tax else bill
+        if (base < 0) return null
         val tip = base * tipPercent / 100
         val total = bill + tip
         return Triple(tip, total, total / people)

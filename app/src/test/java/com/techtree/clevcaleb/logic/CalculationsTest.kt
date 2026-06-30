@@ -226,6 +226,32 @@ class CalculationsTest {
     }
 
     @Test
+    fun tipNegativeBaseReturnsNull() {
+        assertEquals(null, FinanceCalculations.tip(50.0, 60.0, 18.0, 2, excludeTax = true))
+    }
+
+    @Test
+    fun mathEnginePiAfterDigitUsesImplicitMultiplication() {
+        val result = MathEngine.evaluate("2π")
+        assertNotNull(result)
+        assertEquals(2 * kotlin.math.PI, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePiStandalone() {
+        val result = MathEngine.evaluate("π")
+        assertNotNull(result)
+        assertEquals(kotlin.math.PI, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEnginePiAfterParenthesis() {
+        val result = MathEngine.evaluate("(1+1)π")
+        assertNotNull(result)
+        assertEquals(4 * kotlin.math.PI, result!!, 0.0001)
+    }
+
+    @Test
     fun bmiZeroHeightReturnsNull() {
         assertEquals(null, HealthCalculations.bmi(70.0, 0.0))
     }

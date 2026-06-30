@@ -20,6 +20,9 @@ object MathEngine {
     /** Remaining N% becomes N/100 (e.g. 5% -> 0.05, or 100*5% -> 100*5/100). */
     private val barePercentPattern = Regex("""([\d,]+(?:\.[\d,]*)?)%""")
 
+    /** Implicit multiplication before π (e.g. 2π → 2*π, not 23.14…). */
+    private val implicitMulBeforePi = Regex("""([\d.)])π""")
+
     private val sinDegFn = object : net.objecthunter.exp4j.function.Function("sinDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.sin(Math.toRadians(args[0]))
     }
@@ -63,6 +66,7 @@ object MathEngine {
             .replace("÷", "/")
             .replace("−", "-")
         if (includeConstants) {
+            result = implicitMulBeforePi.replace(result) { "${it.groupValues[1]}*π" }
             result = result.replace("π", PI.toString())
         }
         return result.trim()

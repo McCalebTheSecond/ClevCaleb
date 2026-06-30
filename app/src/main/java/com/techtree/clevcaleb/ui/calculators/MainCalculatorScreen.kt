@@ -121,7 +121,7 @@ fun MainCalculatorScreen(
         immediate: Boolean = false,
     ) {
         rawExpression = Formatters.stripGrouping(text)
-        val display = Formatters.formatExpression(rawExpression)
+        val display = displayExpression
         val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(rawExpression, display, it) }
             ?: display.length
         textFieldValue = TextFieldValue(
@@ -136,9 +136,14 @@ fun MainCalculatorScreen(
             preview = ""
             return@LaunchedEffect
         }
+        preview = ""
+        val expr = rawExpression
+        val mode = angleMode
+        val decimals = decimalPlaces
         delay(120)
-        val result = MathEngine.evaluate(rawExpression, angleMode)
-        preview = result?.let { Formatters.previewResult(it, decimalPlaces) } ?: ""
+        if (expr != rawExpression || mode != angleMode || decimals != decimalPlaces) return@LaunchedEffect
+        val result = MathEngine.evaluate(expr, mode)
+        preview = result?.let { Formatters.previewResult(it, decimals) } ?: ""
     }
 
     LaunchedEffect(savedExpr, keepRecord) {
@@ -230,10 +235,9 @@ fun MainCalculatorScreen(
             "⌫" -> backspace()
             "=" -> {
                 val result = MathEngine.evaluate(rawExpression, angleMode)
-                if (result != null && Formatters.fitsDisplay(result, decimalPlaces)) {
-                    val formatted = Formatters.calculator(result, decimalPlaces)
-                    val displayExpr = Formatters.formatExpression(rawExpression)
-                    val entry = "$displayExpr = $formatted"
+                val formatted = result?.let { Formatters.previewResult(it, decimalPlaces) }
+                if (formatted != null && formatted.isNotEmpty() && formatted != Formatters.PREVIEW_ERROR) {
+                    val entry = "$displayExpression = $formatted"
                     viewModel.addHistory(entry)
                     setExpression(Formatters.stripGrouping(formatted), immediate = true)
                 }

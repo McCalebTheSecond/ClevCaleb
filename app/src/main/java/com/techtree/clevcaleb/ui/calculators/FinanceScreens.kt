@@ -200,23 +200,21 @@ fun UnitPriceScreen(onBack: () -> Unit) {
     var priceB by remember { mutableStateOf("6.49") }
     var qtyB by remember { mutableStateOf("24") }
 
-    val unitA = remember(priceA, qtyA) {
-        val p = priceA.toDoubleOrNull()
-        val q = qtyA.toDoubleOrNull()
-        if (p != null && q != null && q > 0) Formatters.currency(p / q) else null
-    }
-    val unitB = remember(priceB, qtyB) {
-        val p = priceB.toDoubleOrNull()
-        val q = qtyB.toDoubleOrNull()
-        if (p != null && q != null && q > 0) Formatters.currency(p / q) else null
-    }
-    val best = remember(priceA, qtyA, priceB, qtyB) {
+    val (unitA, unitB, best) = remember(priceA, qtyA, priceB, qtyB) {
         val p1 = priceA.toDoubleOrNull()
         val q1 = qtyA.toDoubleOrNull()
         val p2 = priceB.toDoubleOrNull()
         val q2 = qtyB.toDoubleOrNull()
-        if (p1 == null || q1 == null || q1 <= 0 || p2 == null || q2 == null || q2 <= 0) return@remember null
-        if (p1 / q1 <= p2 / q2) "Product A" else "Product B"
+        val a = if (p1 != null && q1 != null && q1 > 0) Formatters.currency(p1 / q1) else null
+        val b = if (p2 != null && q2 != null && q2 > 0) Formatters.currency(p2 / q2) else null
+        val winner = if (p1 == null || q1 == null || q1 <= 0 || p2 == null || q2 == null || q2 <= 0) {
+            null
+        } else if (p1 / q1 <= p2 / q2) {
+            "Product A"
+        } else {
+            "Product B"
+        }
+        Triple(a, b, winner)
     }
 
     CalculatorScaffold(title = "Unit Price", onBack = onBack) {
