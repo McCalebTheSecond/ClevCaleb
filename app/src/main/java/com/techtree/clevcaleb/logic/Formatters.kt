@@ -20,6 +20,8 @@ object Formatters {
     /** Largest integer exactly representable as a [Double]. */
     private const val MAX_EXACT_INTEGER = 9_007_199_254_740_992L
 
+    private val decimalFactors = DoubleArray(16) { 10.0.pow(it.toDouble()) }
+
     fun stripGrouping(text: String): String = text.replace(",", "")
 
     fun number(value: Double, decimals: Int = 2): String =
@@ -85,10 +87,7 @@ object Formatters {
         return displayIdx
     }
 
-    /** Whether a numeric result can be shown accurately in the calculator display. */
-    fun fitsDisplay(value: Double, maxDecimals: Int = 10): Boolean {
-        if (!value.isFinite()) return false
-        val formatted = calculator(value, maxDecimals)
+    private fun fitsCalculatorDisplay(value: Double, formatted: String): Boolean {
         if (formatted == PREVIEW_ERROR) return false
         if (formatted.count { it.isDigit() } > MAX_DISPLAY_DIGITS) return false
         if (abs(value - value.roundToLong().toDouble()) < 1e-9) {
@@ -97,15 +96,17 @@ object Formatters {
         return true
     }
 
+    /** Whether a numeric result can be shown accurately in the calculator display. */
+    fun fitsDisplay(value: Double, maxDecimals: Int = 10): Boolean {
+        if (!value.isFinite()) return false
+        return fitsCalculatorDisplay(value, calculator(value, maxDecimals))
+    }
+
     /** Live-preview text for a computed result, or [PREVIEW_ERROR] when it cannot be shown. */
     fun previewResult(value: Double, maxDecimals: Int = 10): String {
         if (!value.isFinite()) return ""
         val formatted = calculator(value, maxDecimals)
-        if (formatted == PREVIEW_ERROR) return PREVIEW_ERROR
-        if (formatted.count { it.isDigit() } > MAX_DISPLAY_DIGITS) return PREVIEW_ERROR
-        if (abs(value - value.roundToLong().toDouble()) < 1e-9) {
-            if (abs(value.roundToLong()) > MAX_EXACT_INTEGER) return PREVIEW_ERROR
-        }
+        if (!fitsCalculatorDisplay(value, formatted)) return PREVIEW_ERROR
         return formatted
     }
 
@@ -130,7 +131,7 @@ object Formatters {
      */
     fun calculator(value: Double, maxDecimals: Int = 10): String {
         if (!value.isFinite()) return "Error"
-        val factor = 10.0.pow(maxDecimals.coerceIn(0, 15).toDouble())
+        val factor = decimalFactors[maxDecimals.coerceIn(0, 15)]
         val rounded = (value * factor).roundToLong() / factor
         if (abs(rounded - rounded.toLong()) < 1e-12 && abs(rounded) < 1e15) {
             return integer(rounded.toLong())

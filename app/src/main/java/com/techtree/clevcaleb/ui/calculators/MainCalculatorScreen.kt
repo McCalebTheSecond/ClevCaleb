@@ -120,9 +120,10 @@ fun MainCalculatorScreen(
         cursorRaw: Int? = null,
         immediate: Boolean = false,
     ) {
-        rawExpression = Formatters.stripGrouping(text)
-        val display = displayExpression
-        val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(rawExpression, display, it) }
+        val normalized = Formatters.stripGrouping(text)
+        rawExpression = normalized
+        val display = Formatters.formatExpression(normalized)
+        val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(normalized, display, it) }
             ?: display.length
         textFieldValue = TextFieldValue(
             text = display,

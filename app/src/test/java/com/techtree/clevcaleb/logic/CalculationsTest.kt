@@ -252,6 +252,45 @@ class CalculationsTest {
     }
 
     @Test
+    fun mathEngineEAfterDigitUsesImplicitMultiplication() {
+        val result = MathEngine.evaluate("2e")
+        assertNotNull(result)
+        assertEquals(2 * kotlin.math.E, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineEAfterParenthesisUsesImplicitMultiplication() {
+        val result = MathEngine.evaluate("(1+1)e")
+        assertNotNull(result)
+        assertEquals(2 * kotlin.math.E, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineEBeforeDigitUsesImplicitMultiplication() {
+        val result = MathEngine.evaluate("e2")
+        assertNotNull(result)
+        assertEquals(kotlin.math.E * 2, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineChainedEulerMultiplication() {
+        val result = MathEngine.evaluate("1e10")
+        assertNotNull(result)
+        assertEquals(kotlin.math.E * 10, result!!, 0.0001)
+    }
+
+    @Test
+    fun loanPaymentNegativePrincipalReturnsNull() {
+        assertEquals(null, FinanceCalculations.loanPayment(-10000.0, 5.0, 5.0))
+    }
+
+    @Test
+    fun currencyConvertZeroFromRateReturnsZero() {
+        val rates = mapOf("USD" to 0.0, "EUR" to 0.5)
+        assertEquals(0.0, CurrencyRepository.convert(100.0, "USD", "EUR", rates), 0.01)
+    }
+
+    @Test
     fun bmiZeroHeightReturnsNull() {
         assertEquals(null, HealthCalculations.bmi(70.0, 0.0))
     }

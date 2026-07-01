@@ -23,6 +23,10 @@ object MathEngine {
     /** Implicit multiplication before π (e.g. 2π → 2*π, not 23.14…). */
     private val implicitMulBeforePi = Regex("""([\d.)])π""")
 
+    /** Implicit multiplication around Euler's e (keypad has no scientific-notation EE key). */
+    private val implicitMulBeforeE = Regex("""([\d.)])e""")
+    private val implicitMulAfterE = Regex("""e([\d(])""")
+
     private val sinDegFn = object : net.objecthunter.exp4j.function.Function("sinDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.sin(Math.toRadians(args[0]))
     }
@@ -67,6 +71,8 @@ object MathEngine {
             .replace("−", "-")
         if (includeConstants) {
             result = implicitMulBeforePi.replace(result) { "${it.groupValues[1]}*π" }
+            result = implicitMulBeforeE.replace(result) { "${it.groupValues[1]}*e" }
+            result = implicitMulAfterE.replace(result) { "e*${it.groupValues[1]}" }
             result = result.replace("π", PI.toString())
         }
         return result.trim()

@@ -4,6 +4,7 @@ import kotlin.math.pow
 
 object FinanceCalculations {
     fun loanPayment(principal: Double, annualRatePercent: Double, years: Double): Triple<Double, Double, Double>? {
+        if (principal < 0.0 || years < 0.0) return null
         val months = years * 12
         if (months <= 0.0) return null
         val r = annualRatePercent / 100 / 12

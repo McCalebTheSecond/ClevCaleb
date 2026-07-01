@@ -123,6 +123,7 @@ object CurrencyRepository {
     fun convert(amount: Double, from: String, to: String, rates: Map<String, Double>): Double {
         val fromRate = rates[from] ?: fallbackRates[from] ?: 1.0
         val toRate = rates[to] ?: fallbackRates[to] ?: 1.0
+        if (fromRate == 0.0) return 0.0
         return amount / fromRate * toRate
     }
 }

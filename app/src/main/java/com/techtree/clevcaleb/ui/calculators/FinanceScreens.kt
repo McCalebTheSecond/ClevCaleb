@@ -63,6 +63,7 @@ fun DiscountScreen(onBack: () -> Unit) {
     val result = remember(price, discount) {
         val p = price.toDoubleOrNull() ?: return@remember null
         val d = discount.toDoubleOrNull() ?: return@remember null
+        if (p < 0 || d < 0 || d > 100) return@remember null
         val saved = p * d / 100
         Formatters.currency(p - saved) to Formatters.currency(saved)
     }
