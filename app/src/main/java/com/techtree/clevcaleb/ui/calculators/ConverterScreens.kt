@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,7 +69,7 @@ fun CurrencyConverterScreen(onBack: () -> Unit) {
     var amount by remember { mutableStateOf("100") }
     var from by remember { mutableStateOf("USD") }
     var to by remember { mutableStateOf("CAD") }
-    var rates by remember { mutableStateOf<Map<String, Double>?>(null) }
+    var rates by remember { mutableStateOf(CurrencyRepository.cachedRatesOrFallback()) }
 
     LaunchedEffect(Unit) {
         rates = CurrencyRepository.fetchRates()
@@ -78,14 +77,12 @@ fun CurrencyConverterScreen(onBack: () -> Unit) {
 
     val result = remember(amount, from, to, rates) {
         val n = amount.toDoubleOrNull() ?: return@remember "—"
-        val r = rates ?: return@remember "Loading…"
-        val converted = CurrencyRepository.convert(n, from, to, r)
+        val converted = CurrencyRepository.convert(n, from, to, rates)
         val symbol = CurrencyRepository.symbolFor(to)
         "$symbol${Formatters.number(converted)}"
     }
 
     CalculatorScaffold(title = "Currency Converter", onBack = onBack) {
-        if (rates == null) CircularProgressIndicator(color = HermesColors.Primary)
         NumberField("Amount", amount) { amount = it }
         DropdownField("From", CurrencyRepository.dropdownOptions, from) { from = it }
         DropdownField("To", CurrencyRepository.dropdownOptions, to) { to = it }

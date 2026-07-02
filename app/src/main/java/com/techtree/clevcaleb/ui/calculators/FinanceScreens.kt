@@ -149,6 +149,7 @@ fun SalesTaxScreen(onBack: () -> Unit) {
     val result = remember(price, rate) {
         val p = price.toDoubleOrNull() ?: return@remember null
         val r = rate.toDoubleOrNull() ?: return@remember null
+        if (p < 0 || r < 0) return@remember null
         val tax = p * r / 100
         Formatters.currency(tax) to Formatters.currency(p + tax)
     }

@@ -25,8 +25,8 @@ object FinanceCalculations {
         years: Double,
         taxOnInterestPercent: Double,
     ): Triple<Double, Double, Double>? {
-        val months = (years * 12).toInt()
-        if (months <= 0) return null
+        val months = years * 12
+        if (months <= 0.0) return null
         val r = annualRatePercent / 100 / 12 * (1 - taxOnInterestPercent / 100)
         val balance = if (r == 0.0) {
             initial + monthly * months

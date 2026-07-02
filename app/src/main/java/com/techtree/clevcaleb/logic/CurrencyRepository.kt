@@ -67,6 +67,9 @@ object CurrencyRepository {
 
     private val fetchMutex = Mutex()
 
+    /** Synchronous snapshot for UI init — avoids a loading flash when cache is warm. */
+    fun cachedRatesOrFallback(): Map<String, Double> = cachedRates ?: fallbackRates
+
     suspend fun fetchRates(): Map<String, Double> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         cachedRates?.let { cached ->

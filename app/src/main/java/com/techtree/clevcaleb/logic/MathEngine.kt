@@ -2,6 +2,7 @@ package com.techtree.clevcaleb.logic
 
 import net.objecthunter.exp4j.Expression
 import net.objecthunter.exp4j.ExpressionBuilder
+import kotlin.math.E
 import kotlin.math.PI
 
 object MathEngine {
@@ -10,6 +11,9 @@ object MathEngine {
     private val sinDegPattern = Regex("""\bsin\(""")
     private val cosDegPattern = Regex("""\bcos\(""")
     private val tanDegPattern = Regex("""\btan\(""")
+    private val lnCallPattern = Regex("""\bln\(""")
+    private val log10CallPattern = Regex("""\blog\(""")
+    private const val NAT_LOG_PLACEHOLDER = "\u0000@"
 
     /** A + B% or A - B% where B% means B percent of A (ClevCalc / GNOME style). */
     private val addSubPercentPattern = Regex("""([\d,]+(?:\.[\d,]*)?)([+\-])([\d,]+(?:\.[\d,]*)?)%""")
@@ -25,7 +29,10 @@ object MathEngine {
 
     /** Implicit multiplication around Euler's e (keypad has no scientific-notation EE key). */
     private val implicitMulBeforeE = Regex("""([\d.)])e""")
-    private val implicitMulAfterE = Regex("""e([\d(])""")
+    /** Digits only — e) inside ln(e) must stay intact. */
+    private val implicitMulAfterE = Regex("""e(\d)""")
+    /** Euler's e after implicit-mul passes — not letters in ln/log. */
+    private val standaloneEulerE = Regex("""\be\b""")
 
     private val sinDegFn = object : net.objecthunter.exp4j.function.Function("sinDeg", 1) {
         override fun apply(vararg args: Double) = kotlin.math.sin(Math.toRadians(args[0]))
@@ -73,6 +80,7 @@ object MathEngine {
             result = implicitMulBeforePi.replace(result) { "${it.groupValues[1]}*π" }
             result = implicitMulBeforeE.replace(result) { "${it.groupValues[1]}*e" }
             result = implicitMulAfterE.replace(result) { "e*${it.groupValues[1]}" }
+            result = standaloneEulerE.replace(result) { E.toString() }
             result = result.replace("π", PI.toString())
         }
         return result.trim()
@@ -107,6 +115,13 @@ object MathEngine {
         return result
     }
 
+    /** exp4j: log = natural, log10 = base 10; keypad uses ln / log. */
+    internal fun mapLogFunctions(expression: String): String =
+        expression
+            .replace(lnCallPattern, "$NAT_LOG_PLACEHOLDER(")
+            .replace(log10CallPattern, "log10(")
+            .replace("$NAT_LOG_PLACEHOLDER(", "log(")
+
     fun evaluate(expression: String, angleMode: AngleMode = AngleMode.DEG): Double? {
         val cleaned = normalizeOperators(expression, includeConstants = true)
         if (cleaned.isEmpty()) return null
@@ -116,14 +131,16 @@ object MathEngine {
 
         val withPercents = preprocessPercentages(stripped)
 
-        val prepared = if (angleMode == AngleMode.DEG) {
-            withPercents
-                .replace(sinDegPattern, "sinDeg(")
-                .replace(cosDegPattern, "cosDeg(")
-                .replace(tanDegPattern, "tanDeg(")
-        } else {
-            withPercents
-        }
+        val prepared = mapLogFunctions(
+            if (angleMode == AngleMode.DEG) {
+                withPercents
+                    .replace(sinDegPattern, "sinDeg(")
+                    .replace(cosDegPattern, "cosDeg(")
+                    .replace(tanDegPattern, "tanDeg(")
+            } else {
+                withPercents
+            },
+        )
 
         return try {
             compiledExpression(prepared).evaluate()

@@ -280,6 +280,36 @@ class CalculationsTest {
     }
 
     @Test
+    fun mathEngineLnOfE() {
+        val result = MathEngine.evaluate("ln(e)")
+        assertNotNull(result)
+        assertEquals(1.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun mathEngineLogBase10() {
+        val result = MathEngine.evaluate("log(100)")
+        assertNotNull(result)
+        assertEquals(2.0, result!!, 0.0001)
+    }
+
+    @Test
+    fun savingsBalanceFractionalYearsCompoundsOverFullTerm() {
+        val whole = FinanceCalculations.savingsBalance(1000.0, 200.0, 5.0, 10.0, 0.0)
+        val fractional = FinanceCalculations.savingsBalance(1000.0, 200.0, 5.0, 10.33, 0.0)
+        assertNotNull(whole)
+        assertNotNull(fractional)
+        assert(fractional!!.first > whole!!.first)
+    }
+
+    @Test
+    fun currencyCachedRatesOrFallbackReturnsFallbackWhenEmpty() {
+        val rates = CurrencyRepository.cachedRatesOrFallback()
+        assertEquals(1.0, rates["USD"]!!, 0.0001)
+        assert(rates.size >= 7)
+    }
+
+    @Test
     fun loanPaymentNegativePrincipalReturnsNull() {
         assertEquals(null, FinanceCalculations.loanPayment(-10000.0, 5.0, 5.0))
     }

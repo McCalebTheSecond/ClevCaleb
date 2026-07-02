@@ -37,7 +37,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,7 +109,7 @@ fun MainCalculatorScreen(
     var preview by remember { mutableStateOf("") }
     var helpKey by remember { mutableStateOf<String?>(null) }
 
-    val displayExpression by remember { derivedStateOf { Formatters.formatExpression(rawExpression) } }
+    var displayExpression by remember { mutableStateOf("") }
 
     val view = LocalView.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -123,6 +122,7 @@ fun MainCalculatorScreen(
         val normalized = Formatters.stripGrouping(text)
         rawExpression = normalized
         val display = Formatters.formatExpression(normalized)
+        displayExpression = display
         val cursor = cursorRaw?.let { Formatters.rawOffsetToDisplay(normalized, display, it) }
             ?: display.length
         textFieldValue = TextFieldValue(
@@ -421,7 +421,7 @@ fun MainCalculatorScreen(
                     } else {
                         history.forEach { item ->
                             TextButton(onClick = {
-                                setExpression(item.substringBefore(" = "))
+                                setExpression(item.substringBeforeLast(" = "))
                                 showHistory = false
                             }) {
                                 Text(item, color = HermesColors.Foreground)
